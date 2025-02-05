@@ -105,15 +105,15 @@ ClassFile {
 
 5. **方法**：方法区域是存放 **字节码指令** 的核心位置，字节码指令的内容存放在方法的 Code 属性中。
 
-   <img src="D:\Document\JAVA\images\54a4ef3c-ce98-496f-ae23-a44646b9bf6c.png" style="zoom:50%;" />
+   <img src="images\54a4ef3c-ce98-496f-ae23-a44646b9bf6c.png" style="zoom:50%;" />
 
-   <img src="D:\Document\JAVA\images\a2e987f8-3225-4d4f-a17f-77ecbf48b827.png" alt="a2e987f8-3225-4d4f-a17f-77ecbf48b827" style="zoom:50%;" />
+   <img src="images\a2e987f8-3225-4d4f-a17f-77ecbf48b827.png" alt="a2e987f8-3225-4d4f-a17f-77ecbf48b827" style="zoom:50%;" />
 
 6. **属性**：属性主要指的是类的属性，比如源码的文件名、内部类的列表等
 
 ### 类的生命周期
 
-![类的生命周期](D:\Document\JAVA\images\a863b68f-da90-4fee-8455-58b2e5a2d616.png)
+![类的生命周期](images\a863b68f-da90-4fee-8455-58b2e5a2d616.png)
 
 #### 加载
 
@@ -328,7 +328,7 @@ class Test4_A {
 
 #### 双亲委派机制
 
-![双亲委派机制](D:\Document\JAVA\images\59e7bf8f-ebfa-45b6-a22c-26c076446e62.png)
+![双亲委派机制](images\59e7bf8f-ebfa-45b6-a22c-26c076446e62.png)
 
 双亲委派机制是指：在加载一个类时，先交给父类检查是否加载过，即 **向上查找是否加载过**。如果已经加载就不会重复加载，若没有加载，则会检查这个类是否在自己的目录下，如果在则加载，如果不在则交给子类加载，即 **向下尝试加载**。
 
@@ -453,7 +453,7 @@ public class BreakClassLoader1 extends ClassLoader { // ClassLoader是个抽象�
 
 ### 运行时数据区
 
-<img src="D:\Document\JAVA\images\neicun-jiegou-20240110195211.png" alt="版本对比" style="zoom:50%;" />
+<img src="images\neicun-jiegou-20240110195211.png" alt="版本对比" style="zoom:50%;" />
 
 在 1.6 之前，常量池不区分 **字符串常量池** 与 **运行时常量池**，统一归为 **常量池**，放在 **方法区，即永久代**。
 
@@ -1356,11 +1356,11 @@ public interface InterFace01 extends InterFace01 {
 
 ## 集合
 
-
+嘻嘻嘻
 
 ## 时间类
 
-### Date
+### Date类
 
 `java.util.Date` 类 表示特定的瞬间，精确到毫秒。
 
@@ -1384,7 +1384,7 @@ public class Demo01Date {
 }
 ```
 
-####  Date 常用方法
+#### Date 常用方法
 
 Date 类常用的方法有：
 
@@ -1420,11 +1420,9 @@ public class DateDemo02 {
 - **格式化**：按照指定的格式，把 Date 对象转换为 String 对象。
 - **解析**：按照指定的格式，把 String 对象转换为 Date 对象。
 
-#### 构造方法
+#### DateFormat构造方法
 
-由于 DateFormat 为抽象类，不能直接使用，所以需要常用的子类 `java.text.SimpleDateFormat`。这个类需要一个模式（格式）来指定格式化或解析的标准。构造方法为：
-
-- `public SimpleDateFormat(String pattern)`：用给定的模式和默认语言环境的日期格式符号构造 SimpleDateFormat。参数 pattern 是一个字符串，代表日期时间的自定义格式。
+由于 DateFormat 为抽象类，不能直接使用，所以需要常用的子类 `java.text.SimpleDateFormat`。这个类需要一个模式（格式）来指定格式化或解析的标准。构造方法为：`public SimpleDateFormat(String pattern)`：用给定的模式和默认语言环境的日期格式符号构造 SimpleDateFormat。参数 pattern 是一个字符串，代表日期时间的自定义格式。
 
 #### 格式规则
 
@@ -1439,9 +1437,7 @@ public class DateDemo02 {
 | m                      | 分   |
 | s                      | 秒   |
 
-#### 常用方法
-
-DateFormat 类的常用方法有：
+#### DateFormat 类的常用方法
 
 - `public String format(Date date)`：将 Date 对象格式化为字符串。
 
