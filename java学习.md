@@ -1356,11 +1356,177 @@ public interface InterFace01 extends InterFace01 {
 
 ## 集合
 
-嘻嘻嘻
+<img src="images\java-collection-hierarchy.png" alt="集合" style="zoom:50%;" />
+
+### List
+
+ `ArrayList` 和 `LinkedList` 都是不同步的，也就是不保证线程安全；
+
+#### ArrayList
+
+```java
+// 创建
+ArrayList<String> alist = new ArrayList<String>();
+List<String> blist = new ArrayList<>();
+// 填 O(n)
+alist.add("qyb"); // 默认最后一个位置
+alist.add(0, "qybb"); //指定位置
+// 更
+alist.set(0, "sdf");
+// 删 O(n)
+alist.remove(1); // index
+alist.remove("sdf");  // Object
+//查 支持随机方法
+alist.indexOf("qyb"); // 正序
+alist.lastIndexOf("qyb"); //倒序
+alist.contains("qyb"); // 是否存在
+```
+
+#### LinkedList
+
+```java
+LinkedList<String> list = new LinkedList();
+/*add()*/
+/*remove()：删除第一个节点
+remove(int)：删除指定位置的节点  O(1)
+remove(Object)：删除指定元素的节点 O(n)
+removeFirst()：删除第一个节点
+removeLast()：删除最后一个节点*/
+/*set(int index, E element)*/
+/*查 不只是随机，必须遍历
+indexOf(Object o)
+get(int index)*/
+```
+
+### Set
+
+一般不会使用 Set 而是使用 List 当中的类，使用 Set 的场景主要是进行 **去重**。
+
+常见的 HashSet 是由 HashMap 实现。
+
+比较 HashSet、LinkedHashSet 和 TreeSet 三者的异同
+
+- `HashSet`、`LinkedHashSet` 和 `TreeSet` 都是 `Set` 接口的实现类，都能保证元素唯一，并且都不是线程安全的。
+- `HashSet`、`LinkedHashSet` 和 `TreeSet` 的主要区别在于底层数据结构不同。`HashSet` 的底层数据结构是哈希表（基于 `HashMap` 实现）。`LinkedHashSet` 的底层数据结构是链表和哈希表，元素的插入和取出顺序满足 FIFO。`TreeSet` 底层数据结构是红黑树，元素是有序的，排序的方式有自然排序和定制排序。
+- 底层数据结构不同又导致这三者的应用场景不同。`HashSet` 用于不需要保证元素插入和取出顺序的场景，`LinkedHashSet` 用于保证元素的插入和取出顺序满足 FIFO 的场景，`TreeSet` 用于支持对元素自定义排序规则的场景。
+
+### Map
+
+```java
+// 创建 HashMap 对象 Sites
+HashMap<Integer, String> Sites = new HashMap<Integer, String>();
+// 添加键值对
+Sites.put(1, "Google");
+Sites.put(2, "Runoob");
+Sites.put(3, "Taobao");
+Sites.put(4, "Zhihu");
+// 输出 key 和 value
+for (Integer i : Sites.keySet()) {
+    System.out.println("key: " + i + " value: " + Sites.get(i));
+}
+// 返回所有 value 值
+for(String value: Sites.values()) {
+    // 输出每一个value
+    System.out.print(value + ", ");
+}
+```
+
+HashMap 线程不安全：
+
+- 多线程下扩容会死循环
+- 多线程下 put 会导致元素丢失
+- put 和 get 并发时会导致 get 到 null
+
+### 比较器
+
+
+####  Comparable 接口
+
+- **定义**：**自然排序** 接口，由对象 **自身实现**，表示对象具备默认的比较能力。
+
+- **方法**：实现 `compareTo(T o)` 方法，接受 **一个参数**（与当前对象比较）。
+
+- **特点**：
+
+  - 类本身实现该接口，定义 **默认的排序规则**（如 `String`、`Integer` 等类默认实现）。
+  - 直接通过 `Collections.sort(list)` 或 `Arrays.sort(arr)` 调用默认排序。
+
+- **示例**：
+
+  java
+
+  复制
+
+  ```java
+  class Person implements Comparable<Person> {
+      String name;
+      int age;
+  
+      @Override 
+      public int compareTo(Person other) { //Comparable的比较器需要在待排序的类的内部完成
+          // 按年龄升序排序
+          return this.age - other.age;
+      }
+  }
+  ```
+
+------
+
+#### Comparator 接口
+
+- **定义**：**定制排序** 接口，作为 **独立的比较器** 存在，允许为类定义多种排序规则。
+
+- **方法**：实现 `compare(T o1, T o2)` 方法，接受 **两个参数**（比较两个对象）。
+
+- **特点**：
+
+  - 无需修改类源码，可定义 **多种排序规则**（如按姓名、年龄等不同属性排序）。
+  - 通过 `Collections.sort(list, comparator)` 或 `Arrays.sort(arr, comparator)` 调用。
+
+- **示例**：
+
+  java
+
+  复制
+
+  ```java
+  // 按姓名排序的比较器
+  Comparator<Person> nameComparator = new Comparator<>() {
+      @Override
+      public int compare(Person p1, Person p2) { // Comparator需要单独在类外完成
+          return p1.name.compareTo(p2.name);
+      }
+  };
+  // Java 8+ 的 Lambda 简化写法
+  Comparator<Person> ageComparator = (p1, p2) -> p1.age - p2.age;
+  // sort中匿名内部类实现 Comparator 常见
+  // Collections.sort(Object t ,new Comparator<Object>(){
+  //              public int compare(Object num1,Object num2){
+  //                return num1-num2;
+  //           }
+  // });
+  Collections.sort(numsArr,new Comparator<Integer>(){
+              public int compare(Integer num1,Integer num2){
+                  return num1-num2;
+              }
+          });
+  ```
+
+------
+
+#### 核心区别对比
+
+| **特性**         | **`Comparable`**       | **`Comparator`**               |
+| :--------------- | :--------------------- | :----------------------------- |
+| **实现位置**     | 类内部实现（修改源码） | 类外部定义（不修改源码）       |
+| **方法名**       | `compareTo(T o)`       | `compare(T o1, T o2)`          |
+| **排序规则数量** | 一种（默认自然排序）   | 多种（可定义任意数量的比较器） |
+| **灵活性**       | 低（需修改类）         | 高（无需修改类，支持多规则）   |
+| **使用场景**     | 定义类的默认排序规则   | 动态定义或扩展排序规则         |
 
 ## 时间类
 
-### Date类
+### Date 类
 
 `java.util.Date` 类 表示特定的瞬间，精确到毫秒。
 
@@ -1420,7 +1586,7 @@ public class DateDemo02 {
 - **格式化**：按照指定的格式，把 Date 对象转换为 String 对象。
 - **解析**：按照指定的格式，把 String 对象转换为 Date 对象。
 
-#### DateFormat构造方法
+#### DateFormat 构造方法
 
 由于 DateFormat 为抽象类，不能直接使用，所以需要常用的子类 `java.text.SimpleDateFormat`。这个类需要一个模式（格式）来指定格式化或解析的标准。构造方法为：`public SimpleDateFormat(String pattern)`：用给定的模式和默认语言环境的日期格式符号构造 SimpleDateFormat。参数 pattern 是一个字符串，代表日期时间的自定义格式。
 
@@ -1882,18 +2048,14 @@ System.out.println(duration.toNanos());//两个时间差的纳秒数
 // 当前本地 年月日
 LocalDate today = LocalDate.now();
 System.out.println(today);
-
 // 生日的 年月日
 LocalDate birthDate = LocalDate.of(2000, 1, 1);
 System.out.println(birthDate);
-
 Period period = Period.between(birthDate, today);//第二个参数减第一个参数
-
 System.out.println(&quot;相差的时间间隔对象:&quot; + period);
 System.out.println(period.getYears());
 System.out.println(period.getMonths());
 System.out.println(period.getDays());
-
 System.out.println(period.toTotalMonths());
 ```
 
@@ -1904,7 +2066,6 @@ System.out.println(today);
 // 生日时间
 LocalDateTime birthDate = LocalDateTime.of(2000, 1, 1,0, 0, 0);
 System.out.println(birthDate);
-
 System.out.println(&quot;相差的年数:&quot; + ChronoUnit.YEARS.between(birthDate, today));
 System.out.println(&quot;相差的月数:&quot; + ChronoUnit.MONTHS.between(birthDate, today));
 System.out.println(&quot;相差的周数:&quot; + ChronoUnit.WEEKS.between(birthDate, today));
@@ -1921,4 +2082,985 @@ System.out.println(&quot;相差的世纪(百年)数:&quot; + ChronoUnit.CENTURIE
 System.out.println(&quot;相差的千年数:&quot; + ChronoUnit.MILLENNIA.between(birthDate, today));
 System.out.println(&quot;相差的纪元数:&quot; + ChronoUnit.ERAS.between(birthDate, today));
 ```
+
+# Web 前端
+
+**Web 标准** 由三个组成部分：
+
+- **HTML**：负责网页的结构（页面元素和内容）
+- **CSS**：负责网页的表现（页面元素的外观、位置等页面样式，如：颜色、大小等）
+- **JavaScript**：负责网页的行为（交互效果）
+
+但目前开发基本都直接使用 Vue 这种框架开发
+
+## HTML
+
+现在 AI 很方便，页面结构可以直接由 GPT、DeepSeek 生成。只要知道主要的标签，会认即可。由 API 文档。[MDN Web Docs](https://developer.mozilla.org/zh-CN/)
+
+## CSS
+
+同理这些 CSS 样式给 GPT，会帮你生成。主要知道几种引入手段与选择器即可就行。
+
+**引用样式**：
+
+- 行内样式：直接在标签中 `style` 属性，配合 JavaScript。`<h1 stylt='xxxx'>xxxx<h1>`
+- 内部样式：在 html 的 `<style> xxxx <style>` 标签中书写，一般放在 `head` 中
+- 外部样式：在 html 中通过 `link` 标签引用外部写好的 `CSS` 文件。`<link href="main.css" rel="stylesheet" />`
+
+**选择器**：
+
+```css
+/* 选择器名 {
+  css样式名：css样式值;
+}  */
+/*元素选择器：通过元素名称选择 HTML元素。*/
+p {
+  color: blue;
+}
+/*.ClassName 类选择器 选择所有具有类别为 "highlight" 的元素 <h1 class='highlight'xx><h1>*/
+.highlight {
+  background-color: yellow;
+}
+/*#idName id选择器，选择所有id为runoob的元素，<h1 id='runoob'>xx<h1>*/
+#runoob {
+  width: 200px;
+}
+/*属性选择器*/
+div p {
+  font-weight: bold;
+}
+/*后代选择器使用空格分隔元素名称,选择所有在 <div> 元素内的 <p>元素*/
+input[type="text"] {
+  border: 1px solid gray;
+}
+```
+
+**子组合器**:
+
+```css
+span {
+  background-color: aqua;
+}
+
+div > span {
+  background-color: yellow;
+}
+/*必须是直接关系的子代
+<div>
+  <span>
+    1 号 span，在 div 中。
+    <span>2 号 span，在 div 中的 span 中。</span> 这个span中的span就不生效
+  </span>
+</div>
+<span>3 号 span，不在 div 中。</span>*/
+
+
+```
+
+## JavaScript
+
+写在 `<script>` 中
+
+```html
+<script> 
+    // 声明变量
+    let a = 20;
+    // 声明常量 一旦声明不能修改
+    const PI = 3.14;
+    // 自定义对象
+    let user = {
+        name: "Tom",
+        age: 10,
+        gender: "男",
+        sing: function(){
+            console.log("悠悠的唱着最炫的民族风~");
+        }
+    }
+    // 输出
+    //方式一: 写入浏览器的body区域
+    document.write(a);
+    //方式二: 弹出框
+    window.alert(PI);
+    //方式三: 控制台
+    console.log(user.name);
+    user.sing();
+</script>
+<script>
+    //JSON 本质是String的js对象 与自定义JS对象的区别在于 key必须由"keyvalue"括起来
+    let json_val = {
+        "name": "qyb",
+        "age": 18
+    }
+    // 或 let personJson = '{"name": "qyb", "age": 18}';
+    let js_val {
+        name: "qyb",
+         age: 18
+    }
+    alert(JSON.stringify(js_val));//JSON.stringify转化为json
+    alert(JSON.parse(personJson).name);// JSON.parse转化为js
+</script>
+<script>
+    // DOM是指整个当前的html文件，通过dom可以对当前html进行修改属性，值。
+    //1. 修改第一个h1标签中的文本内容
+    //let h1 = document.querySelector('#title1');
+    //let h1 = document.querySelector('h1'); // 获取第一个h1标签
+    let hs = document.querySelectorAll('h1');
+    //1.2 调用DOM对象中属性或方法
+    hs[0].innerHTML = '修改后的文本内容';
+</script>
+<script>
+    // 事件监听，
+    // 事件源.addEventListener('事件类型', 要执行的函数); event是指动作的这个对象那个
+    document.querySelector("#btn1").addEventListener('click', (event)=>{
+        alert("按钮1被点击了...");
+        // event.target 指绑定的这个元素 可以event.target.id获取元素值
+    })
+      //click: 鼠标点击事件
+        document.querySelector('#b2').addEventListener('click', () => {
+            console.log("我被点击了...");
+        })
+        
+        //mouseenter: 鼠标移入
+        document.querySelector('#last').addEventListener('mouseenter', () => {
+            console.log("鼠标移入了...");
+        })
+
+        //mouseleave: 鼠标移出
+        document.querySelector('#last').addEventListener('mouseleave', () => {
+            console.log("鼠标移出了...");
+        })
+
+        //keydown: 某个键盘的键被按下
+        document.querySelector('#username').addEventListener('keydown', () => {
+            console.log("键盘被按下了...");
+        })
+
+        //keydown: 某个键盘的键被抬起
+        document.querySelector('#username').addEventListener('keyup', () => {
+            console.log("键盘被抬起了...");
+        })
+
+        //blur: 失去焦点事件
+        document.querySelector('#age').addEventListener('blur', () => {
+            console.log("失去焦点...");
+        })
+
+        //focus: 元素获得焦点
+        document.querySelector('#age').addEventListener('focus', () => {
+            console.log("获得焦点...");
+        })
+
+        //input: 用户输入时触发
+        document.querySelector('#age').addEventListener('input', () => {
+            console.log("用户输入时触发...");
+        })
+
+        //submit: 提交表单事件
+        document.querySelector('form').addEventListener('submit', () => {
+            alert("表单被提交了...");
+        })
+</script>
+```
+
+## Vue
+
+[Vue 官方文档](https://cn.vuejs.org/guide/introduction.html)
+
+# Java 后端
+
+## Maven
+
+- **作用**：
+
+1. **项目构建**：提供标准的、跨平台的自动化项目构建方式。
+2. **依赖管理**：方便快捷的管理项目依赖的资源（jar 包），避免资源间的版本冲突问题。
+3. **统一开发结构**：提供标准的、统一的项目结构。
+
+- **依赖寻找顺序**：本地仓库、中央仓库、远程仓库
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!-- POM模型版本 -->
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 当前项目坐标-->
+    <groupId>com.itheima</groupId><!-- 组织名-->
+    <artifactId>maven-project01</artifactId><!-- 模块名-->
+    <version>1.0-SNAPSHOT</version>
+    
+    <!-- 项目的JDK版本及编码 -->
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+    <!-- 依赖 -->
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.9.1</version>
+            <scope>test</scope> <!-- 指定生命周期范围 -->
+        </dependency>
+    </dependencies>
+</project>
+```
+
+- **生命周期**：
+  1. clean：移除上一次构建生成的文件（删除 target）
+  2. compile：编译项目源代码（生成 target）
+  3. test：使用合适的单元测试框架运行测试(junit)
+  4. package：将编译后的文件打包，如：jar、war 等
+  5. install：安装项目到本地仓库
+
+## Juint 单元测试
+
+**阶段划分：** 单元测试、集成测试、系统测试、验收测试。
+
+**测试方法：** 白盒测试、黑盒测试 及 灰盒测试。
+
+```xml
+<!--Junit单元测试依赖-->
+<dependency>
+    <groupId>org.junit.jupiter</groupId>
+    <artifactId>junit-jupiter</artifactId>
+    <version>5.9.1</version>
+    <scope>test</scope>
+</dependency>
+```
+
+```java
+// test/java目录下，创建测试类(命名规范：xxxxTest)，并编写对应的测试方法(public void)，并在方法上声明@Test注解
+@Test
+public void testGetAge(){
+    Integer age = new UserService().getAge("110002200505091218");
+    System.out.println(age);
+}
+
+// 断言，帮我们确定被测试的方法是否按照预期的效果正常工作。如初始的值与期望是否相同，等
+@Test
+public void testGetAge2(){
+    Integer age = new UserService().getAge("110002200505091218");
+    Assertions.assertNotEquals(18, age, "两个值相等");
+}
+```
+
+在 JUnit 中还提供了一些注解，还增强其功能，常见的注解有以下几个：
+
+| 注解               | 说明                                                         | 备注                            |
+| ------------------ | ------------------------------------------------------------ | ------------------------------- |
+| @Test              | 测试类中的方法用它修饰才能成为测试方法，才能启动执行         | 单元测试                        |
+| @BeforeEach        | 用来修饰一个实例方法，该方法会在每一个测试方法执行之前执行一次。 | 初始化资源(准备工作)            |
+| @AfterEach         | 用来修饰一个实例方法，该方法会在每一个测试方法执行之后执行一次。 | 释放资源(清理工作)              |
+| @BeforeAll         | 用来修饰一个静态方法，该方法会在所有测试方法之前只执行一次。 | 初始化资源(准备工作)            |
+| @AfterAll          | 用来修饰一个静态方法，该方法会在所有测试方法之后只执行一次。 | 释放资源(清理工作)              |
+| @ParameterizedTest | 参数化测试的注解 (可以让单个测试运行多次，每次运行时仅参数不同) | 用了该注解，就不需要@Test 注解了 |
+| @ValueSource       | 参数化测试的参数来源，赋予测试方法参数                       | 与参数化测试注解配合使用        |
+| @DisplayName       | 指定测试类、测试方法显示的名称 （默认为类名、方法名）        |                                 |
+
+```java
+    @DisplayName("测试性别")
+    @ParameterizedTest
+    @ValueSource(strings = {"100000200010011011", "100000200010011031", "100000200010011051"})
+    public void getGender_MultipleMaleIdCards_ReturnsMale(String idCard) {
+        String gender = userService.getGender(idCard);
+        assertEquals("男", gender, "性别获取错误，应为男性");
+    }
+```
+
+## HTTP
+
+- HTTP 请求：浏览器将数据以请求格式发送到服务器。可以通过 `HttpServletRequest` 接受前端传来的数据
+
+  ```java
+  @RestController
+  public class RequestController {
+      @RequestMapping("/handleRequest")
+      // Web服务器（Tomcat）对HTTP协议的请求数据进行解析，并进行了封装(HttpServletRequest)，
+      // 并在调用Controller方法的时候传递给了该方法
+      // 因此，在Controller方法中，可以通过HttpServletRequest对象获取请求数据
+      public String handleRequest(HttpServletRequest request) { // 接受HttpServletRequest对象作为参数
+          // http://localhost:8080/handleRequest?name=qyb&age=18
+          //1.获取请求参数 name, age
+          String name = request.getParameter("name");
+          String age = request.getParameter("age");
+          System.out.println("name = " + name + ", age = " + age);
+          //2.获取请求路径
+          String uri = request.getRequestURI();
+          String url = request.getRequestURL().toString();
+          System.out.println("uri = " + uri); // /handleRequest
+          System.out.println("url = " + url); // http://localhost:8080/handleRequest
+          //3.获取请求方式
+          String method = request.getMethod();
+          System.out.println("method = " + method); // GET
+          //4.获取请求头
+          String header = request.getHeader("User-Agent");
+          System.out.println("header = " + header);
+          // 给页面返回一个字符串ok
+          return "OK";
+      }
+  }
+  ```
+
+- HTTP 响应：服务器将数据以响应格式返回给浏览器。
+
+  ```java
+  @RestController
+  public class ResponseController {
+      //1.使用 HttpServletResponse 对象设置响应状态码、响应头、响应体
+      @RequestMapping("/response")
+      public void response(HttpServletResponse response) throws IOException {//响应无返回值
+          //1.设置响应状态码
+          response.setStatus(401);
+          //2.设置响应头
+          response.setHeader("name","qyb");
+          //3.设置响应体
+          response.setContentType("text/html;charset=utf-8");
+          response.setCharacterEncoding("utf-8");
+          response.getWriter().write("<h1>hello response</h1>");
+      }
+      //2.使用 ResponseEntity 对象设置响应状态码、响应头、响应体
+      @RequestMapping("/response2")
+      public ResponseEntity<String> response2(HttpServletResponse response) throws IOException {
+          return ResponseEntity
+                  .status(401)
+                  .header("name","itcast")
+                  .body("<h1>hello response</h1>");
+      }
+  }
+  ```
+
+### 参数接受
+
+从前端用HTTP传过来的请求参数，在控制层当中处理。
+
+- **路径参数**：`localhost:8080/dept/{id}`其中id是个**占位符**，例如`localhost:8080/dept/1`。对于这种路径参数，方法的参数需要`@PathVariable`注解。如果路径参数名与controller方法形参名称一致，`@PathVariable`注解的value属性是可以省略的。
+
+  ```java
+  @GetMapping("/depts/{id}")
+  public Result getById(@PathVariable("id") Integer id){
+      //System.out.println("根据ID查询, id=" + id);
+      log.info("根据ID查询, id: {}" , id);
+      Dept dept = deptService.getById(id);
+      return Result.success(dept);
+  }
+  ```
+
+- **地址传参**：通过Spring提供的 `@RequestParam` 注解，将请求参数绑定给方法形参。
+
+  ```java
+  @DeleteMapping("/depts")
+  // (@RequestParam("id",required = false) Integer deptId) 效果一致
+  // @RequestParam注解required属性默认为true，代表该参数必须传递，如果不传递将报错。 如果参数可选，可以将属性设置为false。
+  public Result deleteById(Integer id) { // 如果请求参数名与形参变量名相同，直接定义方法形参即可接收
+      //System.out.println("根据id删除部门, id=" + id);
+      log.info("根据id删除部门, id: {}" , id);
+      deptService.deleteById(id);
+      return Result.success();
+  }
+  ```
+
+- **json传参**：J**SON数据的键名与方法形参对象的属性名相同**，并需要使用`@RequestBody`注解。
+
+  ```java
+  @PostMapping("/depts")
+  public Result save(@RequestBody Dept dept){
+      //System.out.println("新增部门, dept=" + dept);
+      log.info("新增部门, dept: {}" , dept);
+      deptService.save(dept);
+      return Result.success();
+  }
+  ```
+
+**注意1**：**一个请求方法只可以有一个`@RequestBody`，但是可以有多个`@RequestParam`和`@PathVariable`**
+
+
+
+## Lombok
+
+一个 Dao 层插件，可以省去手动写 `get与set` 方法。一般只是用下面加粗的注解。
+
+- @Setter 注解在类或字段，注解在类时为所有字段生成 setter 方法，注解在字段上时只为该字段生成 setter 方法。
+- @Getter 使用方法同上，区别在于生成的是 getter 方法。
+- @ToString 注解在类，添加 toString 方法。
+- @EqualsAndHashCode 注解在类，生成 hashCode 和 equals 方法。
+- **@NoArgsConstructor 注解在类，生成无参的构造方法。**
+- @RequiredArgsConstructor 注解在类，为类中需要特殊处理的字段生成构造方法，比如 final 和被@NonNull 注解的字段。
+- **@AllArgsConstructor 注解在类，生成包含类中所有字段的构造方法。**
+- **@Data 注解在类**，生成 setter/getter、equals、canEqual、hashCode、toString 方法，如为 final 属性，则不会为该属性生成 setter 方法。
+- @Slf4j 注解在类，生成 log 变量，严格意义来说是常量。
+
+```java
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class User {
+    private Integer id;
+    private String username;
+    private String password;
+    private String name;
+    private Integer age;
+    private LocalDateTime updateTime;
+
+}
+```
+
+## 三层架构
+
+一个案例：案例中把所有代码集中在一个 `Controller` 中，但这不利于后续更新代码。案例中三个部分大致分别负责 **数据访问、逻辑处理、请求处理**。因此按照这个三个功能，可以划分为三层架构，以便后续更新，维护。
+
+```java
+@RestController
+public class userController {
+
+    @RequestMapping("/list")
+    public List<User> list( ) {
+        //1.加载并读取文件
+        InputStream in = this.getClass().getClassLoader().getResourceAsStream("user.txt");
+        ArrayList<String> lines = IoUtil.readLines(in, StandardCharsets.UTF_8, new ArrayList<>());
+
+        //2.解析数据，封装成对象 --> 集合
+        List<User> userList = lines.stream().map(line -> {
+            String[] parts = line.split(",");
+            Integer id = Integer.parseInt(parts[0]);
+            String username = parts[1];
+            String password = parts[2];
+            String name = parts[3];
+            Integer age = Integer.parseInt(parts[4]);
+            LocalDateTime updateTime = LocalDateTime.parse(parts[5], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+
+            return new User(id, username, password, name, age, updateTime);
+        }).collect(Collectors.toList());
+
+        //3.响应数据JSON格式
+        //return JSONUtil.toJsonStr(userList, JSONConfig.create().setDateFormat("yyyy-MM-dd HH:mm:ss"));
+        //自动将list转换成json格式 -> 
+        //@RestController包含ResponseBody，这个注解可以将方法返回值直接响应给浏览器，如果返回值类型是实体对象/集合，将会转换为JSON格式后在响应给浏览器
+        return userList;
+
+    }
+
+```
+
+- Controller：控制层。接收前端发送的请求，对 **请求进行处理，并响应数据**。（`HttpServletRequest` 接受前端传来的数据，return json 格式）
+- Service：业务逻辑层。处理具体的业务逻辑，**逻辑处理**。
+- Dao：数据访问层(Data Access Object)，也称为持久层。负责数据访问操作，包括 **数据的增、删、改、查**。
+
+![img](images\image6.png)
+
+- 前端发起的请求，由 Controller 层接收（Controller 响应数据给前端）
+- Controller 层调用 Service 层来进行逻辑处理（Service 层处理完后，把处理结果返回给 Controller 层）
+- Serivce 层调用 Dao 层（逻辑处理过程中需要用到的一些数据要从 Dao 层获取）
+- Dao 层操作文件中的数据（Dao 拿到的数据会返回给 Service 层）
+
+因此将上述案例代码可以进行更新。**1). 控制层：接收前端发送的请求，对请求进行处理，并响应数据**
+
+在 `com.itheima.controller` 中创建 UserController 类，代码如下：
+
+```Java
+@RestController
+public class UserController {
+    
+    private UserService userService = new UserServiceImpl();
+
+    @RequestMapping("/list")
+    public List<User> list(){
+        //1.调用Service
+        List<User> userList = userService.findAll();
+        //2.响应数据
+        return userList;
+    }
+}
+```
+
+**2). 业务逻辑层：处理具体的业务逻辑**
+
+在 `com.itheima.service` 中创建 UserSerivce 接口，代码如下：
+
+```Java
+public interface UserService {
+    public List<User> findAll();
+}
+```
+
+在 `com.itheima.service.impl` 中创建 UserSerivceImpl 接口，代码如下：
+
+```Java
+public class UserServiceImpl implements UserService {
+
+    private UserDao userDao = new UserDaoImpl();
+
+    @Override
+    public List<User> findAll() {
+        List<String> lines = userDao.findAll();
+        List<User> userList = lines.stream().map(line -> {
+            String[] parts = line.split(",");
+            Integer id = Integer.parseInt(parts[0]);
+            String username = parts[1];
+            String password = parts[2];
+            String name = parts[3];
+            Integer age = Integer.parseInt(parts[4]);
+            LocalDateTime updateTime = LocalDateTime.parse(parts[5], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            return new User(id, username, password, name, age, updateTime);
+        }).collect(Collectors.toList());
+        return userList;
+    }
+}
+```
+
+**3). 数据访问层：负责数据的访问操作，包含数据的增、删、改、查**
+
+在 `com.itheima.dao` 中创建 UserDao 接口，代码如下：
+
+```Java
+public interface UserDao {
+    
+    public List<String> findAll();
+
+}
+```
+
+在 `com.itheima.dao.impl` 中创建 UserDaoImpl 接口，代码如下：
+
+```Java
+public class UserDaoImpl implements UserDao {
+    @Override
+    public List<String> findAll() {
+        InputStream in = this.getClass().getClassLoader().getResourceAsStream("user.txt");
+        ArrayList<String> lines = IoUtil.readLines(in, StandardCharsets.UTF_8, new ArrayList<>());
+        return lines;
+    }
+}
+```
+
+- 先接口在定义实现类是符合目前的开发规范
+- 使用多态，`private UserDao userDao = new UserDaoImpl();`
+
+## IOC&DI
+
+在上述案例中，存在 `new` 创建一个对象，这回导致项目的耦合度变高，Spring 中为了 **降低耦合度，提高内聚**，设计一个方法，**对象交给容器管理**。
+
+- **控制反转：** 简称 **IOC**。**对象的创建控制权由程序自身转移到外部（容器）**，这种思想称为控制反转。
+  - 对象的创建权由程序员主动创建转移到容器(由容器创建、管理对象)。这个容器称为：IOC 容器或 Spring 容器
+- **依赖注入：** 简称 **DI**。容器为应用程序提供运行时，所依赖的资源，称之为依赖注入。
+  - 程序运行时需要某个资源，此时容器就为其提供这个资源。
+  - 例：EmpController 程序运行时需要 EmpService 对象，Spring 容器就为其提供并注入 EmpService 对象。
+
+- **bean 对象：** IOC 容器中创建、管理的对象，称之为：bean 对象。
+
+### IOC
+
+Spring 框架为了更好的标识 web 应用程序开发当中，bean 对象到底归属于哪一层，又提供了@Component 的衍生注解
+
+| 注解        | 说明                 | 位置                                              |
+| ----------- | -------------------- | ------------------------------------------------- |
+| @Component  | 声明 bean 的基础注解   | 不属于以下三类时，用此注解                        |
+| @Controller | @Component 的衍生注解 | 标注在控制层类上                                  |
+| @Service    | @Component 的衍生注解 | 标注在业务层类上                                  |
+| @Repository | @Component 的衍生注解 | 标注在数据访问层类上（由于与 mybatis 整合，用的少） |
+
+在实际开发中，**最好什么层对应什么注解**。
+
+Controller 层：@RestController 包含了 Controller 注解，省略。
+
+Service 层:
+
+```Java
+@Service
+public class UserServiceImpl implements UserService {
+
+    private UserDao userDao;
+
+    @Override
+    public List<User> findAll() {
+        List<String> lines = userDao.findAll();
+        List<User> userList = lines.stream().map(line -> {
+            String[] parts = line.split(",");
+            Integer id = Integer.parseInt(parts[0]);
+            String username = parts[1];
+            String password = parts[2];
+            String name = parts[3];
+            Integer age = Integer.parseInt(parts[4]);
+            LocalDateTime updateTime = LocalDateTime.parse(parts[5], DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+            return new User(id, username, password, name, age, updateTime);
+        }).collect(Collectors.toList());
+        return userList;
+    }
+}
+```
+
+Dao 层:
+
+```Java
+@Repository
+public class UserDaoImpl implements UserDao {
+    @Override
+    public List<String> findAll() {
+        InputStream in = this.getClass().getClassLoader().getResourceAsStream("user.txt");
+        ArrayList<String> lines = IoUtil.readLines(in, StandardCharsets.UTF_8, new ArrayList<>());
+        return lines;
+    }
+}
+```
+
+**注意 1**：声明 bean 的时候，可以通过注解的 value 属性指定 bean 的名字，如果没有指定，默认为类名首字母小写。如 `@Repository("UserDaoBean")`
+
+**注意 2**：使用以上四个注解都可以声明 bean，但是在 springboot 集成 web 开发中，声明控制器 bean 只能用@Controller。
+
+### 组件扫描
+
+问题：使用前面学习的四个注解声明的 bean，一定会生效吗？
+
+答案：不一定。（原因：bean 想要生效，还需要被组件扫描）
+
+- 前面声明 bean 的四大注解，要想生效，还需要被组件扫描注解 `@ComponentScan` 扫描。
+- 该注解虽然没有显式配置，但是实际上已经包含在了 **启动类声明注解 `@SpringBootApplication` 中，默认扫描的范围是启动类所在包及其子包。**
+
+### DI
+
+`@Autowired` 注解，默认是按照 **类型** 进行自动装配的（去 IOC 容器中找某个类型的对象，然后完成注入操作）
+
+@Autowired 进行依赖注入，常见的方式，有如下三种：
+
+1). 属性注入 **推荐**
+
+```Java
+@RestController
+public class UserController {
+
+    //方式一: 属性注入
+    @Autowired
+    private UserService userService;
+    
+  }
+```
+
+- 优点：代码简洁、方便快速开发。
+- 缺点：隐藏了类之间的依赖关系、可能会破坏类的封装性。
+
+2). 构造函数注入
+
+```Java
+@RestController
+public class UserController {
+
+    //方式二: 构造器注入
+    private final UserService userService;
+    
+    @Autowired //如果当前类中只存在一个构造函数, @Autowired可以省略
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+    
+ }   
+```
+
+- 优点：能清晰地看到类的依赖关系、提高了代码的安全性。
+- 缺点：代码繁琐、如果构造参数过多，可能会导致构造函数臃肿。
+- **注意：如果只有一个构造函数，@Autowired 注解可以省略。（通常来说，也只有一个构造函数）**
+
+3). setter 注入
+
+```Java
+/**
+ * 用户信息Controller
+ */
+@RestController
+public class UserController {
+    
+    //方式三: setter注入
+    private UserService userService;
+    
+    @Autowired
+    public void setUserService(UserService userService) {
+        this.userService = userService;
+    }
+    
+}    
+```
+
+- 优点：保持了类的封装性，依赖关系更清晰。
+- 缺点：需要额外编写 setter 方法，增加了代码量。
+
+**注意 1**：那如果在 IOC 容器中，存在多个 **相同类型** 的 bean 对象（因为 `@Autowired` 注解，默认是按照 **类型** 寻找）。
+
+**方案一：使用@Primary 注解**
+
+当存在多个相同类型的 Bean 注入时，加上@Primary 注解，来确定默认的实现。这个方式是在多个同类型的情况，优先使用这个。
+
+```Java
+@Primary
+@Service
+public class UserServiceImpl implements UserService {
+}
+```
+
+**方案二：使用@Qualifier 注解**
+
+指定当前要注入的 bean 对象。 在@Qualifier 的 value 属性中，指定注入的 bean 的名称。这样在同类型的情况下，可以通过 name 来寻找想要的 bean。
+
+**Qualifier 注解不能单独使用，必须配合@Autowired 使用**。
+
+```Java
+@RestController
+public class UserController {
+
+    @Qualifier("userServiceImpl")
+    @Autowired
+    private UserService userService;
+```
+
+**方案三：使用@Resource 注解**
+
+是按照 bean 的名称进行注入。通过 name 属性指定要注入的 bean 的名称。因为@Resource 本身就是通过名称注入。
+
+```Java
+@RestController
+public class UserController {
+        
+    @Resource(name = "userServiceImpl")
+    private UserService userService;
+```
+
+面试题：@Autowird 与 @Resource 的区别
+
+- @Autowired 是 spring 框架提供的注解，而@Resource 是 JDK 提供的注解
+- **@Autowired 默认是按照类型注入，而@Resource 是按照名称注入**。
+
+# 数据库
+
+## MySQL
+
+[Java 面试指南 | JavaGuide](https://javaguide.cn/)
+
+## JDBC
+
+使用 `JAVA` 语言操作数据库，在实际开发中，一般不直接使用，而是使用 `Mybatis` 这种框架。
+
+## Mybatis
+
+MyBatis 是一款优秀的 **持久层** **框架**，用于简化 JDBC 的开发。
+
+引入依赖
+
+```xml
+<dependency>
+<groupId>org.mybatis.spring.boot</groupId>
+<artifactId>mybatis-spring-boot-starter</artifactId>
+<version>3.0.4</version>
+</dependency>
+```
+
+### 数据库连接池
+
+MyBatis 使用了数据库连接池技术，避免频繁的创建连接、销毁连接而带来的资源浪费。下面我们就具体的了解下数据库连接池。
+
+没有连接池的情况：客户端执行 SQL 语句：要先创建一个新的连接对象，然后执行 SQL 语句，SQL 语句执行后又需要关闭连接对象从而释放资源，**每次执行 SQL 时都需要创建连接、销毁链接**，这种频繁的重复创建销毁的过程是比较耗费计算机的性能。
+
+使用连接池的情况：
+
+数据库连接池是个 **容器**，**负责分配、管理数据库连接**。
+
+- 程序在启动时，会在数据库连接池中，创建一定数量的 Connection 对象
+
+允许应用程序重复使用一个现有的数据库连接，而不是再重新建立一个
+
+- 客户端在执行 SQL 时，先从连接池中获取一个 Connection 对象，然后在执行 SQL 语句，SQL 语句执行完之后，释放 Connection 时就会把 Connection 对象归还给连接池（Connection 对象可以复用）
+
+释放空闲时间超过最大空闲时间的连接，来避免因为没有释放连接而引起的数据库连接遗漏
+
+- 客户端获取到 Connection 对象了，但是 Connection 对象并没有去访问数据库(处于空闲)，数据库连接池发现 Connection 对象的空闲时间 > 连接池中预设的最大空闲时间，此时数据库连接池就会自动释放掉这个连接对象
+
+数据库连接池的好处：
+
+- 资源重用
+- 提升系统响应速度
+- 避免数据库连接遗漏
+
+目前比较优秀的连接池有：**Hikari、Druid  （性能更优越）**。在 Mybatis 中，默认使用 Hikari 连接池。如果想要更换连接池可以进行一下操作。
+
+1. 在 Maven 配置文件中引入依赖
+
+   ```xml
+   <dependency>
+       <!-- Druid连接池依赖 -->
+       <groupId>com.alibaba</groupId>
+       <artifactId>druid-spring-boot-starter</artifactId>
+       <version>1.2.19</version>
+   </dependency>
+   ```
+
+2.  在 `application.properties` 中引入数据库连接配置 `spring.datasource.type=xxxx`
+
+   ```properties
+   spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
+   ```
+
+### 方法 1：注解
+
+通过注解 `@Mapper` 的方式，实现增删改擦基本操作。如下：
+
+```java
+//表示是mybatis中的Mapper接口
+//Mapper注解，在程序运行时，框架会自动生成接口的实现类对象(代理对象)，并给交Spring的IOC容器管理
+@Mapper
+public interface UserMapper {
+    // 通过查询注解，查询所有信息
+    // 在注解内写对应的sql语言
+    @Select("select * from user")
+    public List<User> findAll();
+    
+    //在Mybatis中，我们可以通过参数占位符号 #{xxx} 来占位，在调用方法时，传递的参数值会替换占位符。
+    @Delete("delete from user where id = #{id}")
+    public void deleteById(Integer id);
+    
+    @Insert("insert into user(username,password,name,age) values(#{username},#{password},#{name},#{age})")
+    public void insert(User user);
+    
+    @Update("update user set username = #{username},password = #{password},name = #{name},age = #{age} where id = #{id}")
+    public void update(User user);
+    
+    @Select("select * from user where username = #{username} and password = #{password}")
+    public User findByUsernameAndPassword(
+        // @param注解的作用是为接口的方法形参起名字的，对应占位符中的名称。在SpringBoot框架中，可以省略
+        @Param("username") String username, 
+        @Param("password") String password);
+}
+
+```
+
+### 方法 2：xml
+
+**在 Mybatis 中使用 XML 映射文件方式开发，需要符合一定的规范：**
+
+1. XML 映射文件的名称与 Mapper 接口名称一致。例如：定义一个接口 `UserMapper.java`，则对应的 `xml` 文件的名字也要是 `UserMapper.xml`。
+   1. 将 XML 映射文件和 Mapper 接口放置在相同包下（同包同名）。例如：接口文件在 java 目录的 `com.learnz.mapper` 中，则对应的 xml 文件需要卸载 resources 的 `com.learnz.mapper` 下.
+2. XML 映射文件的 namespace 属性为 Mapper 接口全限定名一致
+3. XML 映射文件中 sql 语句的 id 与 Mapper 接口中的方法名一致，并保持返回类型一致。
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--namespace为Mapper接口全限定名，即org.example.Mapper.UserMapper-->
+<mapper namespace="org.example.Mapper.UserMapper">
+    <!--查询操作-->
+    <!--id为接口中对应的方法名-->
+    <!--resultType为返回类型，List<User>.Mybatis进行了封装，直接返回List -->
+    <select id="findAll" resultType="org.example.pojo.User">
+        select * from user
+    </select>
+     <!--插入操作明明需要参数，但是可以选择定义parameterType="com.example.User"-->
+    <insert id="insert" >
+        insert into user(username,password,name,age) values(#{username},#{password},#{name},#{age})
+    </insert>
+</mapper>
+```
+
+**注意 1**：在使用 xml 配置文件实现 MyBatis 开发。如果 **项目中存在相同的类名**。如两个 `User` 但不在一个模块中，会标红，但不影响运行。但最好不要出现。
+
+**注意 2**：在接受参数时，一般均不使用 `parameterType`，因为 **myBatis 会自动生成 key**。
+
+```xml
+<!--参数key不固定-->
+<!--public Employee getEmpByIdAndLastName(Integer id,String lastName)-->
+<select id="getEmpByIdAndLastName" resultType="com.gzl.mybatis.bean.Employee">
+	select * from student where id = #{param1} and last_name=#{param2}
+</select>
+<!--参数key固定，通过(@Param("keyName")Objrct 参数1-->
+<!--public Employee getEmpByIdAndLastName(@Param("id")Integer id,@Param("lastName")String lastName)-->
+<select id="getEmpByIdAndLastName" resultType="com.gzl.mybatis.bean.Employee">
+	select * from student where id = #{id} and last_name=#{lastName}
+</select>
+<!--实体类，直接使用对应属性名-->
+<!--public Employee getEmpByPojo(Employee employee);-->
+<select id="getEmpByPojo" resultType="com.gzl.mybatis.bean.Employee">
+	select * from student where id = #{id} and last_name=#{lastName}
+</select>
+<!--Map-->
+<!--public Employee getEmpByMap(Map<String, Object> map)-->
+<select id="getEmpByPojo" resultType="com.gzl.mybatis.bean.Employee">
+	select * from student where id = #{id} and last_name=#{lastName}
+</select>
+```
+
+**注意 3**：有时候 **实体类属性名** 与 **数据库字段名** 不一样，会导致封装时为 null。有三种方法
+
+- **手动结果映射**
+
+  ```java
+  //注解 column为字段名 property为属性名
+  @Results({@Result(column = "create_time", property = "createTime"),
+            @Result(column = "update_time", property = "updateTime")})
+  @Select("select id, name, create_time, update_time from dept")
+  public List<Dept> findAll();
+  ```
+
+  ```xml
+  <!--xml-->
+  <!--id:这个映射的id，在后面的sql语句中resultMap引用，tpye:实体类的pojo-->
+  <resultMap id="DeptMap" type="org.example.pojo.Dept">
+      <!--id表示主键，result表示替他字段 column为字段名 property为属性名 -->
+      <id property="id" column="id"/>
+      <result property="name" column="name"/>
+      <result property="createTime" column="create_time"/>
+      <result property="updateTime" column="update_time"/>
+  </resultMap>
+  <!-- resultMap指向对应的map的id-->
+  <select id="findAll" resultType="org.example.pojo.Dept" resultMap="DeptMap">
+      select id, name, create_time, update_time from dept order by update_time desc
+  </select>
+  ```
+
+- **驼峰命名**：如果字段名与属性名符合驼峰命名规则，mybatis会自动通过驼峰命名规则映射。驼峰命名规则：   abc_xyz    =>   abcXyz。在配置文件中开启驼峰命名。推荐，因为只要在设计时主意好命名规范即可。
+
+  ```yaml
+  mybatis:
+    configuration:
+      map-underscore-to-camel-case: true
+  ```
+
+- **起别名**：在sql语句中用as起别名
+
+  ```java
+  @Select("select id, name, create_time as createTime, update_time as updateTime from dept")
+  public List<Dept> findAll();
+  ```
+
+# Git
+
+1. 在本地创建项目文件夹，右键打开 `GIT BASH`。输入 `git init`，进行本地仓库初始化。
+
+2. 项目从远程克隆到本地 `git clone "url"`，也可以直接从零创建项目
+
+3. `git checkout -b "分支名"` 建议创建分支
+
+4. 增添，删除，更改项目文件
+
+5. `git status` 可以查看文件状态，红色代表为上传
+
+6. 将修改后的暂存
+
+   ```bash
+   git add filename
+   # 或者添加所有修改的文件
+   git add .
+   ```
+
+7. 暂存区的更改提交到本地仓库
+
+   ```bash
+   git commit -m "修改信息"
+   ```
+
+8. ```bash
+   # git push -u 分支名
+   git push 分支名
+   ```
+
+   
 
