@@ -2435,9 +2435,9 @@ public void testGetAge2(){
 
 ### 参数接受
 
-从前端用HTTP传过来的请求参数，在控制层当中处理。
+从前端用 HTTP 传过来的请求参数，在控制层当中处理。
 
-- **路径参数**：`localhost:8080/dept/{id}`其中id是个**占位符**，例如`localhost:8080/dept/1`。对于这种路径参数，方法的参数需要`@PathVariable`注解。如果路径参数名与controller方法形参名称一致，`@PathVariable`注解的value属性是可以省略的。
+- **路径参数**：`localhost:8080/dept/{id}` 其中 id 是个 **占位符**，例如 `localhost:8080/dept/1`。对于这种路径参数，方法的参数需要 `@PathVariable` 注解。如果路径参数名与 controller 方法形参名称一致，`@PathVariable` 注解的 value 属性是可以省略的。
 
   ```java
   @GetMapping("/depts/{id}")
@@ -2449,7 +2449,7 @@ public void testGetAge2(){
   }
   ```
 
-- **地址传参**：通过Spring提供的 `@RequestParam` 注解，将请求参数绑定给方法形参。
+- **地址传参**：通过 Spring 提供的 `@RequestParam` 注解，将请求参数绑定给方法形参。
 
   ```java
   @DeleteMapping("/depts")
@@ -2463,7 +2463,7 @@ public void testGetAge2(){
   }
   ```
 
-- **json传参**：J**SON数据的键名与方法形参对象的属性名相同**，并需要使用`@RequestBody`注解。
+- **json 传参**：J **SON 数据的键名与方法形参对象的属性名相同**，并需要使用 `@RequestBody` 注解。
 
   ```java
   @PostMapping("/depts")
@@ -2475,9 +2475,7 @@ public void testGetAge2(){
   }
   ```
 
-**注意1**：**一个请求方法只可以有一个`@RequestBody`，但是可以有多个`@RequestParam`和`@PathVariable`**
-
-
+**注意 1**：**一个请求方法只可以有一个 `@RequestBody`，但是可以有多个 `@RequestParam` 和 `@PathVariable`**
 
 ## Lombok
 
@@ -2830,6 +2828,80 @@ public class UserController {
 - @Autowired 是 spring 框架提供的注解，而@Resource 是 JDK 提供的注解
 - **@Autowired 默认是按照类型注入，而@Resource 是按照名称注入**。
 
+### 事务
+
+事务是一组操作的集合，它是一个**不可分割**的工作单位。事务会把所有的操作作为一个整体一起向系统提交或撤销操作请求，即这些操作 **要么同时成功，要么同时失败**。
+
+因此在实际开发中，如果存在发生一个错误，要么就成功，要么失败。不能一个操作成功，一个失败。事务控制主要三步操作：开启事务、提交事务/回滚事务。
+
+spring框架当中就已经把**事务控制的代码都已经封装**好了，并不需要我们手动实现。我们使用了spring框架，我们只需要通过一个简单的注解`@Transactional`就搞定了。
+
+**注解：**`@Transactional`
+
+**作用：**就是在当前这个方法执行开始之前来开启事务，方法执行完毕之后提交事务。如果在这个方法执行的过程当中出现了异常，就会进行事务的回滚操作。
+
+**位置：**业务层的**方法**上、类上、接口上
+
+- 方法上：当前方法交给spring进行事务管理（一般）
+- 类上：当前类中所有的方法都交由spring进行事务管理 
+- 接口上：接口下所有的实现类当中所有的方法都交给spring 进行事务管理
+
+```java
+@Transactional
+@Override
+public void save(Emp emp) {
+    //1.补全基础属性
+    emp.setCreateTime(LocalDateTime.now());
+    emp.setUpdateTime(LocalDateTime.now());
+    //2.保存员工基本信息
+    empMapper.insert(emp);
+
+    int i = 1/0;
+
+    //3. 保存员工的工作经历信息 - 批量
+    Integer empId = emp.getId();
+    List<EmpExpr> exprList = emp.getExprList();
+    if(!CollectionUtils.isEmpty(exprList)){
+        exprList.forEach(empExpr -> empExpr.setEmpId(empId));
+        empExprMapper.insertBatch(exprList);
+    }
+}
+```
+
+但不代表只要注解就成功，因为**只有出现RuntimeException(运行时异常)才会回滚事务**。因此，如果有些抛出的异常不是运行时异常，是不会进行回滚。这是就需要来**配置`@Transactional`注解当中的rollbackFor属性，通过rollbackFor这个属性可以指定出现何种异常类型回滚事务。**
+
+```java
+@Transactional(rollbackFor = Exception.class)
+@Override
+public void save(Emp emp) throws Exception {
+    //1.补全基础属性
+    emp.setCreateTime(LocalDateTime.now());
+    emp.setUpdateTime(LocalDateTime.now());
+    //2.保存员工基本信息
+    empMapper.insert(emp);
+        
+    //int i = 1/0;
+    if(true){
+        throw new Exception("出异常啦....");
+    }
+        
+    //3. 保存员工的工作经历信息 - 批量
+    Integer empId = emp.getId();
+    List<EmpExpr> exprList = emp.getExprList();
+    if(!CollectionUtils.isEmpty(exprList)){
+        exprList.forEach(empExpr -> empExpr.setEmpId(empId));
+        empExprMapper.insertBatch(exprList);
+    }
+}
+```
+
+另一种情况：两个事务方法，一个A方法，一个B方法。在这两个方法上都添加了@Transactional注解，就代表这两个方法都具有事务，而在A方法当中又去调用了B方法。A方法运行的时候，首先会开启一个事务，在A方法当中又调用了B方法， B方法自身也具有事务，那么B方法在运行的时候，到底是加入到A方法的事务当中来，还是B方法在运行的时候新建一个事务？这个就涉及到了事务的传播行为。
+
+`@Transactional`注解当中的第二个属性`propagation`，这个属性是用来配置事务的传播行为的。`propagation`两个常用值为：
+
+- **REQUIRED：**共用同一个事务。
+- **REQUIRES_NEW：**创建新事物。
+
 # 数据库
 
 ## MySQL
@@ -2899,7 +2971,7 @@ MyBatis 使用了数据库连接池技术，避免频繁的创建连接、销毁
    spring.datasource.type=com.alibaba.druid.pool.DruidDataSource
    ```
 
-### 方法 1：注解
+#### 方法 1：注解
 
 通过注解 `@Mapper` 的方式，实现增删改擦基本操作。如下：
 
@@ -2932,7 +3004,7 @@ public interface UserMapper {
 
 ```
 
-### 方法 2：xml
+#### 方法 2：xml
 
 **在 Mybatis 中使用 XML 映射文件方式开发，需要符合一定的规范：**
 
@@ -3016,7 +3088,7 @@ public interface UserMapper {
   </select>
   ```
 
-- **驼峰命名**：如果字段名与属性名符合驼峰命名规则，mybatis会自动通过驼峰命名规则映射。驼峰命名规则：   abc_xyz    =>   abcXyz。在配置文件中开启驼峰命名。推荐，因为只要在设计时主意好命名规范即可。
+- **驼峰命名**：如果字段名与属性名符合驼峰命名规则，mybatis 会自动通过驼峰命名规则映射。驼峰命名规则：   abc_xyz    =>   abcXyz。在配置文件中开启驼峰命名。推荐，因为只要在设计时主意好命名规范即可。
 
   ```yaml
   mybatis:
@@ -3024,12 +3096,607 @@ public interface UserMapper {
       map-underscore-to-camel-case: true
   ```
 
-- **起别名**：在sql语句中用as起别名
+- **起别名**：在 sql 语句中用 as 起别名
 
   ```java
   @Select("select id, name, create_time as createTime, update_time as updateTime from dept")
   public List<Dept> findAll();
   ```
+
+### 动态SQL
+
+MyBatis的动态 SQL 允许在映射文件中根据不同条件动态生成 SQL 语句，避免了手动拼接 SQL 字符串的繁琐与易错性。它基于特定的标签语法，依据传入参数或配置信息灵活构建查询逻辑，极大地提升了代码的可维护性和复用性。
+
+#### if
+
+使用场景为，有时候传的参数不一定全，如果为空，可能会报错，这个时候可以用if进行判断。
+
+如果希望通过 title和 author”两个参数进行可选搜索该怎么办呢？首先，我想先将语句名称修改成更名副其实的名称；接下来，只需要加入另一个条件即可。
+
+```
+<select id="findActiveBlogLike" resultType="Blog">
+  SELECT * FROM BLOG WHERE state = ‘ACTIVE’
+  <if test="title != null">
+    AND title like #{title}
+  </if>
+  <if test="author != null and author.name != null">
+    AND author_name like #{author.name}
+  </if>
+</select>
+```
+
+#### when
+
+MyBatis首先检查第一个`when`标签，如果条件满足，则执行该标签内的SQL语句。如果条件不满足，则继续检查下一个`when`标签，依此类推。如果所有`when`标签的条件都不满足，则执行`otherwise`标签内的SQL语句。
+
+```xml
+<select id="findActiveBlogLike"
+     resultType="Blog">
+  SELECT * FROM BLOG WHERE state = ‘ACTIVE’
+  <choose>
+    <when test="title != null">
+      AND title like #{title}
+    </when>
+    <when test="author != null and author.name != null">
+      AND author_name like #{author.name}
+    </when>
+    <otherwise>
+      AND featured = 1
+    </otherwise>
+  </choose>
+</select>
+```
+
+#### set
+
+常用于**动态更新**数据，如果`set`标签内的`if`为真，则加入，否则不加入。
+
+```xml
+<!--根据ID更新员工信息-->
+<update id="updateById">
+    update emp
+    <set>
+        <if test="username != null and username != ''">username = #{username},</if>
+        <if test="password != null and password != ''">password = #{password},</if>
+        <if test="name != null and name != ''">name = #{name},</if>
+        <if test="gender != null">gender = #{gender},</if>
+        <if test="phone != null and phone != ''">phone = #{phone},</if>
+        <if test="job != null">job = #{job},</if>
+        <if test="salary != null">salary = #{salary},</if>
+        <if test="image != null and image != ''">image = #{image},</if>
+        <if test="entryDate != null">entry_date = #{entryDate},</if>
+        <if test="deptId != null">dept_id = #{deptId},</if>
+        <if test="updateTime != null">update_time = #{updateTime},</if>
+    </set>
+    where id = #{id}
+</update>
+```
+
+
+
+#### foreach
+
+在MyBatis中，`foreach`标签用于在SQL语句中迭代一个集合，常用于构建*IN*条件、批量插入、批量更新等操作。`foreach`标签的主要属性包括
+
+- **collection**: 指定要遍历的集合，表示传入的参数的数据类型。该属性是必须指定的。
+- **item**: 表示本次迭代获取的元素。若*collection*为*List*、*Set*或者数组，则表示其中的元素；若*collection*为*Map*，则代表*key-value*的*value*。
+- **index**: 索引，用于表示在迭代过程中，每次迭代到的位置。遍历*List*时，*index*是索引；遍历*Map*时，*index*表示*Map*的*key*。
+- **separator**: 表示在每次迭代之间以什么符号作为分隔符。
+- **open**: 表示该语句以什么开始，常用的是左括号*(*。
+- **close**: 表示该语句以什么结束，常用的是右括号*)*。
+
+示例代码
+
+```xml
+<!--批量查询-->
+
+<select id="findByIds" resultType="com.example.User">
+    SELECT * FROM user WHERE id IN
+    <foreach collection="list" item="id" open="(" separator="," close=")">
+        #{id}
+    </foreach>
+</select>
+<!--批量插入-->
+<insert id="insertList">
+    INSERT INTO user (id, username, password) VALUES
+    <foreach collection="userList" item="user" separator=",">
+        (#{user.id}, #{user.username}, #{user.password})
+    </foreach>
+</insert>
+<!--批量更新-->
+<update id="updateList">
+    <foreach collection="userList" item="user" separator=";">
+        UPDATE user SET username = #{user.username}, password = #{user.password} WHERE id = #{user.id}
+    </foreach>
+</update>
+<!--批量删除-->
+<delete id="deleteList">
+   DELETE FROM user WHERE id IN
+    <foreach collection="idList" item="id" open="(" separator="," close=")">
+        #{id}
+    </foreach>
+</delete>
+```
+
+重要注意事项
+
+- **性能**: 使用*<foreach>*标签进行批量操作时，注意SQL语句的长度和复杂度，避免性能问题。
+- **事务**: 批量插入、更新和删除操作需要在事务中执行，以确保数据的一致性和完整性。
+- **参数类型**: 确保传入的参数类型与*<foreach>*标签中的*collection*属性匹配，否则会导致运行时错误。
+
+通过合理使用MyBatis中的*<foreach>*标签，可以简化批量操作的SQL语句，提高代码的可读性和维护性。
+
+### 增
+
+**批量增加**：如果想要批量增加，一般传过来的时一个`list`，因此使用动态的SQL语句进行`foreach`，进行遍历list插入信息。
+
+```xml
+    <!--批量插入员工工作经历信息-->
+    <insert id="insertBatch">
+        insert into emp_expr (emp_id, begin, end, company, job) values
+        <foreach collection="exprList" item="expr" separator=",">
+            (#{expr.empId}, #{expr.begin}, #{expr.end}, #{expr.company}, #{expr.job})
+        </foreach>
+    </insert>
+```
+
+**增加返回主键值**：在增加信息时，可以也需要添加其他表的信息，而其他表由于这个表的主键相关联。比如，我新增一个员工，还添加了他的工作经历，增加他的工作经历还需要这员工的主键id。
+
+```java
+/**
+* 新增员工数据
+*/
+@Options(useGeneratedKeys = true, keyProperty = "id")
+@Insert("insert into emp(username, name, gender, phone, job, salary, image, entry_date, dept_id, create_time, update_time) " +
+        "values (#{username},#{name},#{gender},#{phone},#{job},#{salary},#{image},#{entryDate},#{deptId},#{createTime},#{updateTime})")
+void insert(Emp emp);
+```
+
+```xml
+<insert id="insert" useGeneratedKeys="true" keyProperty="id">
+    insert into emp(username, name, gender, phone, job,
+    salary, image, entry_date, dept_id,
+    create_time, update_time) values
+    (#{username}, #{name}, #{gender}, #{phone}, #{job},
+    #{salary},#{image},#{entryDate},#{deptId},
+    #{createTime},#{updateTime})
+</insert>
+```
+
+`useGeneratedKeys`：表示如果插入的表以自增列为主键，则允许JDBC支持自动生成主键，并将**自动生成的主键返回**。
+
+`keyProperty`：表示将数据库的**自增主键与实体类的属性进行绑定**，这样就可以在插入操作后直接获取到自增的主键值。具体值为**主键对应的实体类的属性名**。
+
+```java
+empMapper.insert(emp); // 自动绑定到实体中
+Integer empId = emp.getId();//通过get对应的属性名来获取
+```
+
+### 删
+
+**批量删除**：批量删除需要前端传过来的许多`id`,将`id`封装为`List`。
+
+```java
+/**
+* 批量删除员工
+*/
+@DeleteMapping
+public Result delete(@RequestParam List<Integer> ids){
+    log.info("批量删除部门: ids={} ", ids);
+    empService.deleteByIds(ids);
+    return Result.success();
+}
+```
+
+```xml
+<!--批量删除员工信息-->
+<delete id="deleteByIds">
+    delete from emp where id in
+    <foreach collection="ids" item="id" open="(" close=")" separator=",">
+            #{id}
+    </foreach>
+</delete>
+```
+
+### 查
+
+**一对一查询**：如果实体类属性名与表的字段名一致，则直接使用常规的注释或 xml 配置文件方式即可。但如果**不一致，则需要进行映射**。
+
+```java
+//方式一 通过注释 column字段名 property属性名
+@Results({@Result(column = "create_time", property = "createTime"),
+          @Result(column = "update_time", property = "updateTime")})
+@Select("select id, name, create_time, update_time from dept")
+public List<Dept> findAll();
+```
+
+
+```xml
+<!--方式二 使用reslutMap-->
+    <resultMap id="empResultMap" type="org.example.pojo.Emp">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="name" column="name"/>
+        <result property="gender" column="gender"/>
+        <result property="phone" column="phone"/>
+        <result property="job" column="job"/>
+        <result property="salary" column="salary"/>
+        <result property="image" column="image"/>
+        <result property="entryDate" column="entry_date"/>
+        <result property="deptId" column="dept_id"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateTime" column="update_time"/>
+        <result property="deptName" column="dept_name"/>
+    </resultMap>
+<select id="list" resultMap="empResultMap">
+    select emp.*, dept.name as dept_name from emp left join dept on emp.dept_id = dept.id
+</select>
+```
+
+其中`resultMap`与`resultType`选择一个即可。如果一致的话使用`resultType`。不一致时使用`resultMap`。上述例子中，设计多表查询。目的时查询`emp`所有信息以及`emp`所属的`dept.name`。由于查询的实体类中为`deptName`，而想要查询的表中字段为`name`。因此映射`deptName`为`dept_name`，再把表中的`name`字段改名为`dept_name`。就对应上了。
+
+```
+public class Emp {
+    private Integer id; //ID,主键
+    private String username; //用户名
+    private String password; //密码
+    private String name; //姓名
+    private Integer gender; //性别, 1:男, 2:女
+    private String phone; //手机号
+    private Integer job; //职位, 1:班主任,2:讲师,3:学工主管,4:教研主管,5:咨询师
+    private Integer salary; //薪资
+    private String image; //头像
+    private LocalDate entryDate; //入职日期
+    private Integer deptId; //关联的部门ID
+    private LocalDateTime createTime; //创建时间
+    private LocalDateTime updateTime; //修改时间
+    //封装部门名称数
+    private String deptName; //部门名称
+    //封装员工工作经历信息
+    private List<EmpExpr> exprList;
+}
+```
+
+**一对多查询**：还是上述实体类的例子，一个员工对应许多工作经历，因此需要使用`List`进行封装。再进行一对多查询时，可以使用`collection`进行封装**多的类型**。
+
+```xml
+<!--自定义结果集ResultMap-->
+<resultMap id="empResultMap" type="com.itheima.pojo.Emp">
+    <id column="id" property="id" />
+    <result column="username" property="username" />
+    <result column="password" property="password" />
+    <result column="name" property="name" />
+    <result column="gender" property="gender" />
+    <result column="phone" property="phone" />
+    <result column="job" property="job" />
+    <result column="salary" property="salary" />
+    <result column="image" property="image" />
+    <result column="entry_date" property="entryDate" />
+    <result column="dept_id" property="deptId" />
+    <result column="create_time" property="createTime" />
+    <result column="update_time" property="updateTime" />
+    <!--封装exprList 多 其中property实体类对应集合的属性名  ofType对应的实体类-->
+    <collection property="exprList" ofType="com.itheima.pojo.EmpExpr">
+        <id column="ee_id" property="id"/>
+        <result column="ee_company" property="company"/>
+        <result column="ee_job" property="job"/>
+        <result column="ee_begin" property="begin"/>
+        <result column="ee_end" property="end"/>
+        <result column="ee_empid" property="empId"/>
+    </collection>
+</resultMap>
+<!--根据ID查询员工的详细信息-->
+<select id="getById" resultMap="empResultMap">
+    select e.*,
+        ee.id ee_id,
+        ee.emp_id ee_empid,
+        ee.begin ee_begin,
+        ee.end ee_end,
+        ee.company ee_company,
+        ee.job ee_job
+    from emp e left join emp_expr ee on e.id = ee.emp_id
+    where e.id = #{id}
+</select>
+```
+
+### 改
+
+修改一般时两步操作，查询回显再修改内容。其中查询回显为查的内容，基本就是一对一，一对多的问题。改就是接收前端传回来的json，再传给对象进行修改。跟增加很类似。
+
+```xml
+<update id="update">
+    update dept set name = #{name},update_time = #{updateTime} where id = #{id}
+</update>
+```
+
+```java
+@PutMapping("/depts")
+public Result update(@RequestBody Dept dept){//RequestBody 接受json格式，包含了id
+    System.out.println("修改部门, dept=" + dept);
+    deptService.update(dept);
+    return Result.success();
+}
+
+@Update("update dept set name = #{name},update_time = #{updateTime} where id = #{id}")
+void update(Dept dept);
+```
+
+## PageHelper
+
+原理通过拦截 sql 语句，添加 `limit` 条件。
+
+后台给前端返回的数据包含：List 集合(数据列表)、total(总记录数)。而这两部分我们通常封装到 PageResult 对象中，并将该对象转换为 json 格式的数据响应回给浏览器。具体属性根据开发文档。
+
+```java
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class PageResult<T> {
+    private Long total; //总记录数
+    private List<T> rows; //当前页数据列表
+}
+```
+
+Mapper：就是简单的查询语句，但注意结尾不能加 `;`，因为 PageHelper 要拦截注入 `limti` 条件
+
+```xml
+<select id="list" resultMap="empResultMap" resultType="org.example.pojo.Emp">
+    select e.*, d.name as dept_name from emp as e left join dept as d on e.dept_id = d.id
+    where e.name like concat('%',#{name},'%')
+    and e.gender = #{gender}
+    and e.entry_date between #{begin} and #{end}
+</select>
+```
+
+在 Service 层具体实现分页查询
+
+```java
+@Override
+public PageResult<Emp> page(Integer page, Integer pageSize) {
+    //1. 设置分页参数
+    PageHelper.startPage(page, pageSize);
+
+    //2. 执行查询
+    List<Emp> empList = empMapper.list(name, gender, begin, end);
+    Page<Emp> p = (Page<Emp>) empList;
+
+    //3. 封装分页结果
+    return new PageResult<>(p.getTotal(), p.getResult());
+}
+```
+
+### 案例：条件分页查询，实现模糊搜索
+
+**1). 在 EmpController 方法中通过多个方法形参，依次接收这几个参数**
+
+```Java
+@Slf4j
+@RestController
+@RequestMapping("/emps")
+public class EmpController {
+
+    @Autowired
+    private EmpService empService;
+
+    @GetMapping
+    public Result page(@RequestParam(defaultValue = "1") Integer page,
+                       @RequestParam(defaultValue = "10") Integer pageSize,
+                       String name, Integer gender,
+                       @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate begin,
+                       @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate end) {
+        log.info("查询请求参数： {}, {}, {}, {}, {}, {}", page, pageSize, name, gender, begin, end);
+        PageResult pageResult = empService.page(page, pageSize);
+        return Result.success(pageResult);
+    }
+}
+```
+
+**2). 修改 EmpService 及 EmpServiceImpl 中的代码逻辑**
+
+EmpService：
+
+```Java
+public interface EmpService {
+    /**
+     * 分页查询
+     */
+    PageResult page(Integer page, Integer pageSize, String name, Integer gender, LocalDate begin, LocalDate end);
+}
+```
+
+EmpServiceImpl:
+
+```Java
+/**
+ * 员工管理
+ */
+@Service
+public class EmpServiceImpl implements EmpService {
+
+    @Autowired
+    private EmpMapper empMapper;
+
+    @Override
+    public PageResult page(Integer page, Integer pageSize, String name, Integer gender, LocalDate begin, LocalDate end) {
+        //1. 设置PageHelper分页参数
+        PageHelper.startPage(page, pageSize);
+        //2. 执行查询
+        List<Emp> empList = empMapper.list(name, gender, begin, end);
+        //3. 封装分页结果
+        Page<Emp> p = (Page<Emp>) empList;
+        return new PageResult(p.getTotal(), p.getResult());
+    }
+}
+```
+
+**3). 调整 EmpMapper 接口方法**
+
+```Java
+@Mapper
+public interface EmpMapper {
+    
+    /**
+     * 查询所有的员工及其对应的部门名称
+     */
+    public List<Emp> list(String name, Integer gender, LocalDate begin, LocalDate end);
+    
+}
+```
+
+由于 SQL 语句比较复杂，建议将 SQL 语句配置在 XML 映射文件中。
+
+**4). 新增 Mapper 映射文件** **`EmpMapper.xml`**
+
+```XML
+<!--定义Mapper映射文件的约束和基本结构-->
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.itheima.mapper.EmpMapper">
+    <select id="list" resultType="com.itheima.pojo.Emp">
+        select e.*, d.name deptName from emp as e left join dept as d on e.dept_id = d.id
+        where e.name like concat('%',#{name},'%')
+          and e.gender = #{gender}
+          and e.entry_date between #{begin} and #{end}
+    </select>
+</mapper>
+```
+
+- **优化 1**：传过来的参数过多，可以将参数打包成一个对象。
+
+- **1). 定义实体类：EmpQueryParam**
+
+  ```Java
+  package com.itheima.pojo;
+  
+  import lombok.Data;
+  import org.springframework.format.annotation.DateTimeFormat;
+  import java.time.LocalDate;
+  
+  @Data
+  public class EmpQueryParam {
+      
+      private Integer page = 1; //页码
+      private Integer pageSize = 10; //每页展示记录数
+      private String name; //姓名
+      private Integer gender; //性别
+      @DateTimeFormat(pattern = "yyyy-MM-dd")
+      private LocalDate begin; //入职开始时间
+      @DateTimeFormat(pattern = "yyyy-MM-dd")
+      private LocalDate end; //入职结束时间
+      
+  }
+  ```
+
+  **2). EmpController 接收请求参数**
+
+  ```Java
+  @GetMapping
+  public Result page(EmpQueryParam empQueryParam) {
+      log.info("查询请求参数： {}", empQueryParam);
+      PageResult pageResult = empService.page(empQueryParam);
+      return Result.success(pageResult);
+  }
+  ```
+
+  **3). 修改 EmpService 接口方法**
+
+  ```Java
+  public interface EmpService {
+      /**
+       * 分页查询
+       */
+      //PageResult page(Integer page, Integer pageSize, String name, Integer gender, LocalDate begin, LocalDate end);
+      PageResult page(EmpQueryParam empQueryParam);
+  }
+  ```
+
+  **4). 修改 EmpServiceImpl 中的 page 方法**
+
+  ```Java
+  @Service
+  public class EmpServiceImpl implements EmpService {
+  
+      @Autowired
+      private EmpMapper empMapper;
+  
+      /*@Override
+      public PageResult page(Integer page, Integer pageSize, String name, Integer gender, LocalDate begin, LocalDate end) {
+          //1. 设置PageHelper分页参数
+          PageHelper.startPage(page, pageSize);
+          //2. 执行查询
+          List<Emp> empList = empMapper.list(name, gender, begin, end);
+          //3. 封装分页结果
+          Page<Emp> p = (Page<Emp>) empList;
+          return new PageResult(p.getTotal(), p.getResult());
+      }*/
+  
+      public PageResult page(EmpQueryParam empQueryParam) {
+          //1. 设置PageHelper分页参数
+          PageHelper.startPage(empQueryParam.getPage(), empQueryParam.getPageSize());
+          //2. 执行查询
+          List<Emp> empList = empMapper.list(empQueryParam);
+          //3. 封装分页结果
+          Page<Emp> p = (Page<Emp>)empList;
+          return new PageResult(p.getTotal(), p.getResult());
+      }
+  }
+  ```
+
+  **5). 修改 EmpMapper 接口方法**
+
+  ```Java
+  @Mapper
+  public interface EmpMapper {
+  
+      /**
+       * 查询所有的员工及其对应的部门名称
+       */
+  //    @Select("select e.*, d.name as deptName from emp e left join dept d on e.dept_id = d.id")
+  //    public List<Emp> list(String name, Integer gender, LocalDate begin, LocalDate end);
+      
+      /**
+       * 根据查询条件查询员工
+       */
+      List<Emp> list(EmpQueryParam empQueryParam);
+  }
+  ```
+
+- **优化二**：有时候参数可能没有输入，这时就会会报错。因此动态的查询 SQL 可以解决这个问题。
+
+  **所谓动态 SQL，指的就是随着用户的输入或外部的条件的变化而变化的 SQL 语句。**
+
+  具体的代码实现如下：
+
+  ```XML
+  <!--定义Mapper映射文件的约束和基本结构-->
+  <!DOCTYPE mapper
+          PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+          "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  <mapper namespace="com.itheima.mapper.EmpMapper">
+      <select id="list" resultType="com.itheima.pojo.Emp">
+          select e.*, d.name deptName from emp as e left join dept as d on e.dept_id = d.id
+          <where>
+              <if test="name != null and name != ''">
+                  e.name like concat('%',#{name},'%')
+              </if>
+              <if test="gender != null">
+                  and e.gender = #{gender}
+              </if>
+              <if test="begin != null and end != null">
+                  and e.entry_date between #{begin} and #{end}
+              </if>
+          </where>
+      </select>
+  </mapper>
+  ```
+
+  在这里呢，我们用到了两个动态 SQL 的标签：`<if>`  `<where>`。 这两个标签的具体作用如下：
+
+  `<if>`：判断条件是否成立，如果条件为 true，则拼接 SQL。
+
+  `<where>`：根据查询条件，来生成 where 关键字，并会自动去除条件前面多余的 and 或 or。
 
 # Git
 
