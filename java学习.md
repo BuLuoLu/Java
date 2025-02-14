@@ -2902,6 +2902,403 @@ public void save(Emp emp) throws Exception {
 - **REQUIRED：**共用同一个事务。
 - **REQUIRES_NEW：**创建新事物。
 
+## 登录
+
+**1). 准备实体类** `LoginInfo`， 封装登录成功后， 返回给前端的数据 。
+
+```Java
+/**
+ * 登录成功结果封装类
+ */
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class LoginInfo {
+    private Integer id; //员工ID
+    private String username; //用户名
+    private String name; //姓名
+    private String token; //令牌
+}
+```
+
+**2).  定义**`LoginController`
+
+```Java
+@Slf4j
+@RestController
+public class LoginController {
+
+    @Autowired
+    private EmpService empService;
+
+    @PostMapping("/login")
+    public Result login(@RequestBody Emp emp){
+        log.info("员工来登录啦 , {}", emp);
+        LoginInfo loginInfo = empService.login(emp);
+        if(loginInfo != null){
+            return Result.success(loginInfo);
+        }
+        return Result.error("用户名或密码错误~");
+    }
+
+}
+```
+
+**3).** `EmpService`接口中增加 login 登录方法 
+
+```Java
+/**
+ * 登录
+ */
+LoginInfo login(Emp emp);
+```
+
+**4).**  `EmpServiceImpl` 实现login方法
+
+```Java
+@Override
+public LoginInfo login(Emp emp) {
+    Emp empLogin = empMapper.getUsernameAndPassword(emp);
+    if(empLogin != null){
+        LoginInfo loginInfo = new LoginInfo(empLogin.getId(), empLogin.getUsername(), empLogin.getName(), null);
+        return loginInfo;
+    }
+    return null;
+}
+```
+
+**5).** **`EmpMapper`**增加接口方法
+
+```Java
+/**
+ * 根据用户名和密码查询员工信息
+ */
+@Select("select * from emp where username = #{username} and password = #{password}")
+Emp getUsernameAndPassword(Emp emp);
+```
+
+1. 会话技术：用户登录成功之后，在后续的每一次请求中，都可以获取到该标记。
+2. 统一拦截技术：过滤器Filter、拦截器Interceptor
+
+### 会话技术
+
+会话跟踪技术有两种：
+
+1. Cookie（客户端会话跟踪技术）：数据存储在客户端浏览器当中
+2. Session（服务端会话跟踪技术）：数据存储在储在服务端
+3. 令牌技术
+4. **JWT**
+
+JWT的组成： 
+
+- 第一部分：Header(头）， 记录令牌类型、签名算法等。 例如：{"alg":"HS256","type":"JWT"}
+- 第二部分：Payload(有效载荷），携带一些自定义信息、默认信息等。 例如：{"id":"1","username":"Tom"}
+- 第三部分：Signature(签名），防止Token被篡改、确保安全性。将header、payload，并加入指定秘钥，通过指定签名算法计算而来。
+
+在案例当中通过JWT令牌技术来跟踪会话，主要就是两步操作：
+
+1. 生成令牌
+   1. 在**登录成功之后来生成一个JWT令牌**，并且把这个**令牌直接返回给前端**
+2. 校验令牌
+   1. **拦截前端请求**，从请求中获取到令牌，对令牌进行**解析校验**
+
+那我们首先来完成：登录成功之后生成JWT令牌，并且把令牌返回给前端。
+
+**实现步骤：**
+
+1. 引入JWT工具类：在项目工程下创建 `com.itheima.util` 包，并把提供JWT工具类复制到该包下
+
+```Java
+package com.itheima.util;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+
+import java.util.Date;
+import java.util.Map;
+
+public class JwtUtils {
+
+    private static String signKey = "SVRIRUlNQQ==";
+    private static Long expire = 43200000L;
+
+    /**
+     * 生成JWT令牌
+     * @return
+     */
+    public static String generateJwt(Map<String,Object> claims){
+        String jwt = Jwts.builder()
+                .addClaims(claims) //绑定信息
+                .signWith(SignatureAlgorithm.HS256, signKey)//设置key
+                .setExpiration(new Date(System.currentTimeMillis() + expire)) //生命时间
+                .compact();
+        return jwt;
+    }
+
+    /**
+     * 解析JWT令牌
+     * @param jwt JWT令牌
+     * @return JWT第二部分负载 payload 中存储的内容
+     */
+    public static Claims parseJWT(String jwt){//通过jwt获取信息claims 
+        Claims claims = Jwts.parser()
+                .setSigningKey(signKey)
+                .parseClaimsJws(jwt)
+                .getBody();
+        return claims;
+    }
+}
+```
+
+1. 完善 `EmpServiceImpl`中的 `login` 方法逻辑， 登录成功，生成JWT令牌并返回
+
+```Java
+@Override
+public LoginInfo login(Emp emp) {
+    Emp empLogin = empMapper.getUsernameAndPassword(emp);
+    if(empLogin != null){//判断登录是否成功
+        //1. 成功生成JWT令牌
+        Map<String,Object> dataMap = new HashMap<>();
+        dataMap.put("id", empLogin.getId());
+        dataMap.put("username", empLogin.getUsername());
+        
+        String jwt = JwtUtils.generateJwt(dataMap);
+        LoginInfo loginInfo = new LoginInfo(empLogin.getId(), empLogin.getUsername(), empLogin.getName(), jwt);// 将jwt绑定到登陆实体类，返回前段
+        return loginInfo;
+    }
+    return null;
+}
+```
+
+### 拦截技术
+
+**Filter过滤器**:过滤器可以把对资源的请求拦截下来。
+
+**1). 定义过滤器**
+
+- init方法：过滤器的初始化方法。在web服务器启动的时候会自动的创建Filter过滤器对象，在创建过滤器对象的时候会自动调用init初始化方法，这个方法只会被调用一次。
+- doFilter方法：这个方法是在每一次拦截到请求之后都会被调用，所以这个方法是会被调用多次的，每拦截到一次请求就会调用一次doFilter()方法。
+- destroy方法： 是销毁的方法。当我们关闭服务器的时候，它会自动的调用销毁方法destroy，而这个销毁方法也只会被调用一次。
+
+**2). 配置过滤器**
+
+在定义完Filter之后，Filter其实并不会生效，还需要完成Filter的配置，Filter的配置非常简单，只需要在Filter类上添加一个注解：`@WebFilter`，并指定属性`urlPatterns`，通过这个属性指定过滤器要拦截哪些请求
+
+```Java
+@WebFilter(urlPatterns = "/*") //配置过滤器要拦截的请求路径（ /* 表示拦截浏览器的所有请求 ）
+public class DemoFilter implements Filter {
+    //初始化方法, web服务器启动, 创建Filter实例时调用, 只调用一次
+    public void init(FilterConfig filterConfig) throws ServletException {
+        System.out.println("init ...");
+    }
+
+    //拦截到请求时,调用该方法,可以调用多次
+    public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain chain) throws IOException, ServletException {
+        System.out.println("拦截到了请求...");
+    }
+
+    //销毁方法, web服务器关闭时调用, 只调用一次
+    public void destroy() {
+        System.out.println("destroy ... ");
+    }
+}
+```
+
+当我们在Filter类上面加了@WebFilter注解之后，接下来我们还需要在启动类上面加上一个注解`@ServletComponentScan`，通过这个`@ServletComponentScan`注解来开启SpringBoot项目对于Servlet组件的支持。
+
+```Java
+@ServletComponentScan //开启对Servlet组件的支持
+@SpringBootApplication
+public class TliasManagementApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(TliasManagementApplication.class, args);
+    }
+}
+```
+
+实际案例中拦截的基本流程：
+
+1. 获取请求url
+2. 判断请求url中是否包含login，如果包含，说明是登录操作，放行
+3. 获取请求头中的令牌（token）
+4. 判断令牌是否存在，如果不存在，响应 401
+5. 解析token，如果解析失败，响应 401
+6. 放行
+
+```Java
+/**
+ * 令牌校验过滤器
+ */
+@Slf4j
+@WebFilter(urlPatterns = "/*")
+public class TokenFilter implements Filter {
+
+    @Override
+    public void doFilter(ServletRequest req, ServletResponse resp, FilterChain chain) throws IOException, ServletException {
+        HttpServletRequest request = (HttpServletRequest) req;
+        HttpServletResponse response = (HttpServletResponse) resp;
+        //1. 获取请求url。
+        String url = request.getRequestURL().toString();
+
+        //2. 判断请求url中是否包含login，如果包含，说明是登录操作，放行。
+        if(url.contains("login")){ //登录请求
+            log.info("登录请求 , 直接放行");
+            chain.doFilter(request, response);
+            return;
+        }
+
+        //3. 获取请求头中的令牌（token）。
+        String jwt = request.getHeader("token");
+
+        //4. 判断令牌是否存在，如果不存在，返回错误结果（未登录）。
+        if(!StringUtils.hasLength(jwt)){ //jwt为空
+            log.info("获取到jwt令牌为空, 返回错误结果");
+            response.setStatus(HttpStatus.SC_UNAUTHORIZED);
+            return;
+        }
+
+        //5. 解析token，如果解析失败，返回错误结果（未登录）。
+        try {
+            JwtUtils.parseJWT(jwt);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("解析令牌失败, 返回错误结果");
+            response.setStatus(HttpStatus.SC_UNAUTHORIZED);
+            return;
+        }
+
+        //6. 放行。
+        log.info("令牌合法, 放行");
+        chain.doFilter(request , response);
+    }
+
+}
+```
+
+**Interceptor拦截器**:Spring框架中提供的，用来动态拦截控制器方法的执行。
+
+**1). 自定义拦截器**
+
+实现HandlerInterceptor接口，并重写其所有方法
+
+```Java
+//自定义拦截器
+@Component
+public class DemoInterceptor implements HandlerInterceptor {
+    //目标资源方法执行前执行。 返回true：放行    返回false：不放行
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception { 
+        System.out.println("preHandle .... ");
+        
+        return true; //true表示放行
+    }
+
+    //目标资源方法执行后执行
+    @Override
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+        System.out.println("postHandle ... ");
+    }
+
+    //视图渲染完毕后执行，最后执行
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+        System.out.println("afterCompletion .... ");
+    }
+}
+```
+
+注意：
+
+- preHandle方法：目标资源方法执行前执行。 返回true：放行    返回false：不放行
+- postHandle方法：目标资源方法执行后执行
+- afterCompletion方法：视图渲染完毕后执行，最后执行
+
+**2). 注册配置拦截器**
+
+在 `com.itheima`下创建一个包，然后创建一个配置类 `WebConfig`， 实现 `WebMvcConfigurer` 接口，并重写 `addInterceptors` 方法
+
+```Java
+@Configuration  
+public class WebConfig implements WebMvcConfigurer {
+
+    //自定义的拦截器对象
+    @Autowired
+    private DemoInterceptor demoInterceptor;
+
+    
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+       //注册自定义拦截器对象
+        registry.addInterceptor(demoInterceptor).addPathPatterns("/**");//设置拦截器拦截的请求路径（ /** 表示拦截所有请求）
+    }
+}
+```
+
+实际案例拦截流程：
+
+**1). TokenInterceptor**
+
+```Java
+@Slf4j
+@Component
+public class TokenInterceptor implements HandlerInterceptor {
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        //1. 获取请求url。
+        String url = request.getRequestURL().toString();
+
+        //2. 判断请求url中是否包含login，如果包含，说明是登录操作，放行。
+        if(url.contains("login")){ //登录请求
+            log.info("登录请求 , 直接放行");
+            return true;
+        }
+
+        //3. 获取请求头中的令牌（token）。
+        String jwt = request.getHeader("token");
+
+        //4. 判断令牌是否存在，如果不存在，返回错误结果（未登录）。
+        if(!StringUtils.hasLength(jwt)){ //jwt为空
+            log.info("获取到jwt令牌为空, 返回错误结果");
+            response.setStatus(HttpStatus.SC_UNAUTHORIZED);
+            return false;
+        }
+
+        //5. 解析token，如果解析失败，返回错误结果（未登录）。
+        try {
+            JwtUtils.parseJWT(jwt);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.info("解析令牌失败, 返回错误结果");
+            response.setStatus(HttpStatus.SC_UNAUTHORIZED);
+            return false;
+        }
+
+        //6. 放行。
+        log.info("令牌合法, 放行");
+        return true;
+    }
+
+}
+```
+
+**2). 配置拦截器**
+
+```Java
+@Configuration  
+public class WebConfig implements WebMvcConfigurer {
+    //拦截器对象
+    @Autowired
+    private TokenInterceptor tokenInterceptor;
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+       //注册自定义拦截器对象
+        registry.addInterceptor(tokenInterceptor).addPathPatterns("/**");
+    }
+}
+```
+
 # 数据库
 
 ## MySQL
