@@ -3299,6 +3299,214 @@ public class WebConfig implements WebMvcConfigurer {
 }
 ```
 
+## AOP
+
+AOP：面向切片编程。这里的切片是指某个特定的方法。
+
+应用场景：在实际开发中，有可能许多方法都会调用一个或几个其他接口，如果每个方法都写一次是高度冗余的。因此AOP就是管理这些重复的方法，进行动态代理。
+
+- 减少重复代码：不需要在业务方法中定义大量的重复性的代码，只需要将重复性的代码抽取到AOP程序中即可。
+- 代码无侵入：在基于AOP实现这些业务功能时，对原有的业务代码是没有任何侵入的，不需要修改任何的业务代码。
+- 提高开发效率
+- 维护方便
+
+### 基本概念
+
+- **连接点：JoinPoint**，可以被AOP控制的方法（暗含方法执行时的相关信息）
+  - 连接点指的是可以被aop控制的方法。例如：入门程序当中所有的业务方法都是可以被aop控制的方法。
+  - 在SpringAOP提供的JoinPoint当中，封装了连接点方法在执行时的相关信息。（后面会有具体的讲解）
+
+- **通知：Advice**，指哪些**重复的逻辑**，也就是共性功能（最终体现为一个方法）
+  - 在AOP面向切面编程当中，我们只需要将这部分重复的代码逻辑抽取出来单独定义。抽取出来的这一部分重复的逻辑，也就是共性的功能。
+
+- **切入点：PointCut**，匹配连接点的条件，通知仅会在切入点方法执行时被应用。
+  - 在通知当中，我们所定义的共性功能到底要应用在哪些方法上？此时就涉及到了切入点pointcut概念。切入点指的是匹配连接点的条件。通知仅会在切入点方法运行时才会被应用。
+  - 在aop的开发当中，我们通常会通过一个切入点表达式来描述切入点
+
+- **切面：Aspect**，描述通知与切入点的对应关系（通知+切入点）
+  - 当通知和切入点结合在一起，就形成了一个切面。通过切面就能够描述当前aop程序需要针对于哪个原始方法，在什么时候执行什么样的操作。而切面所在的类，称之为切面类（被`@Aspect`注解标识的类）。
+
+- **目标对象：Target**，通知所应用的对象。
+  - 目标对象指的就是通知所应用的对象，我们就称之为目标对象。
+
+例如，我们现在要**统计部门管理各个业务层方法执行耗时。**统计时间就是一个重复的逻辑，需要提取出来。
+
+```java
+//这些业务方法就是连接点，可以被AOP控制
+public List<Dept> list(){
+    List<Dept> deptList = deptMapper.list();
+    return deptList;
+}
+
+public void delete(Integer id){
+    deptMapper.delete(id);
+}
+
+```
+
+```java
+@Component
+@Aspect //当前类为切面类
+@Slf4j
+public class RecordTimeAspect {
+    //切入点+通知就为切面 需要@Aspect注释
+    //注释里面的内容是切入点表达式 这个注释的作用就是切入点，匹配那些需要被aop管理。
+    @Around("execution(* com.itheima.service.impl.DeptServiceImpl.*(..))")
+    public Object recordTime(ProceedingJoinPoint pjp) throws Throwable {
+        // 统计时间就是重复的：通知，提取出来。
+        //记录方法执行开始时间
+        long begin = System.currentTimeMillis();
+        //执行原始方法
+        Object result = pjp.proceed();
+        //记录方法执行结束时间
+        long end = System.currentTimeMillis();
+        //计算方法执行耗时
+        log.info("方法执行耗时: {}毫秒",end-begin);
+        return result;
+    }
+}
+```
+
+### AOP实现流程
+
+本质：动态代理。
+
+在切面类中，需要执行aop被控制的类，但本质是在bean中创建一个与之前冗余代码相同的类，在控制层中调用服务层的接口时。本质是调用bean中的类。
+
+### AOP通知
+
+| **Spring AOP 通知类型** |                                                              |
+| ----------------------- | ------------------------------------------------------------ |
+| @Around                 | 环绕通知，此注解标注的通知方法在目标方法前、后都被执行       |
+| @Before                 | 前置通知，此注解标注的通知方法在目标方法前被执行             |
+| @After                  | 后置通知，此注解标注的通知方法在目标方法后被执行，无论是否有异常都会执行 |
+| @AfterReturning         | 返回后通知，此注解标注的通知方法在目标方法后被执行，有异常不会执行 |
+| @AfterThrowing          | 异常后通知，此注解标注的通知方法发生异常后执行               |
+
+```java
+@Slf4j
+@Component
+@Aspect
+public class MyAspect1 {
+    //前置通知
+    @Before("execution(* com.itheima.service.*.*(..))")
+    public void before(JoinPoint joinPoint){
+        log.info("before ...");
+
+    }
+    //环绕通知
+    /*在使用通知时的注意事项：
+- @Around环绕通知需要自己调用 ProceedingJoinPoint.proceed() 来让原始方法执行，其他通知不需要考虑目标方法执行
+- @Around环绕通知方法的返回值，必须指定为Object，来接收原始方法的返回值，否则原始方法执行完毕，是获取不到返回值的。*/
+    @Around("execution(* com.itheima.service.*.*(..))")
+    public Object around(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        log.info("around before ...");
+
+        //调用目标对象的原始方法执行 需要手动调用
+        Object result = proceedingJoinPoint.proceed();
+        
+        //原始方法如果执行时有异常，环绕通知中的后置代码不会在执行了
+        
+        log.info("around after ...");
+        return result; //需要返回值
+    }
+    //后置通知
+    @After("execution(* com.itheima.service.*.*(..))")
+    public void after(JoinPoint joinPoint){
+        log.info("after ...");
+    }
+    //返回后通知（程序在正常执行的情况下，会执行的后置通知）
+    @AfterReturning("execution(* com.itheima.service.*.*(..))")
+    public void afterReturning(JoinPoint joinPoint){
+        log.info("afterReturning ...");
+    }
+    //异常通知（程序在出现异常的情况下，执行的后置通知）
+    @AfterThrowing("execution(* com.itheima.service.*.*(..))")
+    public void afterThrowing(JoinPoint joinPoint){
+        log.info("afterThrowing ...");
+    }
+}
+
+```
+
+如果没有异常：
+
+1. **环绕通知**（@Around）：在目标方法执行前后都执行。
+2. **前置通知**（@Before）：在目标方法执行前执行。
+3. **目标方法**：实际的业务逻辑方法。
+4. **环绕通知**（@Around）：在目标方法执行后执行。
+5. **后置通知**（@After）：在目标方法执行后（无论是否抛出异常）执行。
+6. **返回通知**（@AfterReturning）：在目标方法成功执行并返回结果后执行。
+
+如果有异常：
+
+1. **环绕通知**（@Around）：在目标方法执行前后都执行。
+2. **前置通知**（@Before）：在目标方法执行前执行。
+3. **目标方法**：实际的业务逻辑方法。
+4. **后置通知**（@After）：在目标方法执行后（无论是否抛出异常）执行。
+5. **异常通知**（@AfterThrowing）：在目标方法抛出异常后执行。
+
+#### 通知顺序
+
+- **不同的切面类当中，默认情况下通知的执行顺序是与切面类的类名字母排序是有关系的**（
+  - 目标方法前的通知方法：字母排名靠前的先执行
+  - 目标方法后的通知方法：字母排名靠前的后执行
+- **可以在切面类上面加上@Order注解，来控制不同的切面类通知的执行顺序**
+
+### 切入点
+
+execution主要根据方法的返回值、包名、类名、方法名、方法参数等信息来匹配，语法为：
+
+```Java
+// execution(访问修饰符?  返回值  包名.类名.?方法名(方法参数) throws 异常?)
+@Before("execution(void com.itheima.service.impl.DeptServiceImpl.delete(java.lang.Integer))")
+```
+
+其中带`?`的表示可以省略的部分
+
+- 访问修饰符：可省略（比如: public、protected）
+- 包名.类名： 可省略 一般不要省
+- throws 异常：可省略（注意是方法上声明抛出的异常，不是实际抛出的异常）
+
+- `*` ：单个独立的任意符号，可以通配任意返回值、包名、类名、方法名、任意类型的一个参数，也可以通配包、类、方法名的一部分
+- `..` ：多个连续的任意符号，可以通配任意层级的包，或任意类型、任意个数的参数
+
+annotation 切入点表达式
+
+- 基于注解的方式来匹配切入点方法。这种方式虽然多一步操作，我们**需要自定义一个注解**，但是相对来比较灵活。我们需要匹配哪个方法，就在方法上加上对应的注解就可以了
+
+#### pointcut
+
+```Java
+@Slf4j
+@Component
+@Aspect
+public class MyAspect1 {
+    //切入点方法（公共的切入点表达式）
+    @Pointcut("execution(* com.itheima.service.*.*(..))")
+    private void pt(){}
+    //前置通知（引用切入点）
+    @Before("pt()")
+    public void before(JoinPoint joinPoint){
+        log.info("before ...");
+
+    }
+    //环绕通知
+    @Around("pt()")
+    public Object around(ProceedingJoinPoint proceedingJoinPoint) throws Throwable {
+        log.info("around before ...");
+
+        //调用目标对象的原始方法执行
+        Object result = proceedingJoinPoint.proceed();
+        //原始方法在执行时：发生异常
+        //后续代码不在执行
+
+        log.info("around after ...");
+        return result;
+    }
+}
+```
+
 # 数据库
 
 ## MySQL
