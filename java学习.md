@@ -2506,6 +2506,38 @@ public class User {
 }
 ```
 
+### @Builder
+
+```java
+@Data
+@Builder // lombok 允许链式构建
+@NoArgsConstructor
+@AllArgsConstructor
+@ApiModel(description = "员工登录返回的数据格式")
+public class EmployeeLoginVO implements Serializable {
+    @ApiModelProperty("主键值")
+    private Long id;
+    @ApiModelProperty("用户名")
+    private String userName;
+    @ApiModelProperty("姓名")
+    private String name;
+    @ApiModelProperty("jwt令牌")
+    private String token;
+
+}
+```
+
+```java
+EmployeeLoginVO employeeLoginVO = EmployeeLoginVO.builder()
+    .id(employee.getId())
+    .userName(employee.getUsername())
+    .name(employee.getName())
+    .token(token)
+    .build();
+```
+
+
+
 ## 三层架构
 
 一个案例：案例中把所有代码集中在一个 `Controller` 中，但这不利于后续更新代码。案例中三个部分大致分别负责 **数据访问、逻辑处理、请求处理**。因此按照这个三个功能，可以划分为三层架构，以便后续更新，维护。
@@ -2830,21 +2862,21 @@ public class UserController {
 
 ### 事务
 
-事务是一组操作的集合，它是一个**不可分割**的工作单位。事务会把所有的操作作为一个整体一起向系统提交或撤销操作请求，即这些操作 **要么同时成功，要么同时失败**。
+事务是一组操作的集合，它是一个 **不可分割** 的工作单位。事务会把所有的操作作为一个整体一起向系统提交或撤销操作请求，即这些操作 **要么同时成功，要么同时失败**。
 
 因此在实际开发中，如果存在发生一个错误，要么就成功，要么失败。不能一个操作成功，一个失败。事务控制主要三步操作：开启事务、提交事务/回滚事务。
 
-spring框架当中就已经把**事务控制的代码都已经封装**好了，并不需要我们手动实现。我们使用了spring框架，我们只需要通过一个简单的注解`@Transactional`就搞定了。
+spring 框架当中就已经把 **事务控制的代码都已经封装** 好了，并不需要我们手动实现。我们使用了 spring 框架，我们只需要通过一个简单的注解 `@Transactional` 就搞定了。
 
-**注解：**`@Transactional`
+**注解：** `@Transactional`
 
-**作用：**就是在当前这个方法执行开始之前来开启事务，方法执行完毕之后提交事务。如果在这个方法执行的过程当中出现了异常，就会进行事务的回滚操作。
+**作用：** 就是在当前这个方法执行开始之前来开启事务，方法执行完毕之后提交事务。如果在这个方法执行的过程当中出现了异常，就会进行事务的回滚操作。
 
-**位置：**业务层的**方法**上、类上、接口上
+**位置：** 业务层的 **方法** 上、类上、接口上
 
-- 方法上：当前方法交给spring进行事务管理（一般）
-- 类上：当前类中所有的方法都交由spring进行事务管理 
-- 接口上：接口下所有的实现类当中所有的方法都交给spring 进行事务管理
+- 方法上：当前方法交给 spring 进行事务管理（一般）
+- 类上：当前类中所有的方法都交由 spring 进行事务管理 
+- 接口上：接口下所有的实现类当中所有的方法都交给 spring 进行事务管理
 
 ```java
 @Transactional
@@ -2868,7 +2900,7 @@ public void save(Emp emp) {
 }
 ```
 
-但不代表只要注解就成功，因为**只有出现RuntimeException(运行时异常)才会回滚事务**。因此，如果有些抛出的异常不是运行时异常，是不会进行回滚。这是就需要来**配置`@Transactional`注解当中的rollbackFor属性，通过rollbackFor这个属性可以指定出现何种异常类型回滚事务。**
+但不代表只要注解就成功，因为 **只有出现 RuntimeException(运行时异常)才会回滚事务**。因此，如果有些抛出的异常不是运行时异常，是不会进行回滚。这是就需要来 **配置 `@Transactional` 注解当中的 rollbackFor 属性，通过 rollbackFor 这个属性可以指定出现何种异常类型回滚事务。**
 
 ```java
 @Transactional(rollbackFor = Exception.class)
@@ -2895,12 +2927,12 @@ public void save(Emp emp) throws Exception {
 }
 ```
 
-另一种情况：两个事务方法，一个A方法，一个B方法。在这两个方法上都添加了@Transactional注解，就代表这两个方法都具有事务，而在A方法当中又去调用了B方法。A方法运行的时候，首先会开启一个事务，在A方法当中又调用了B方法， B方法自身也具有事务，那么B方法在运行的时候，到底是加入到A方法的事务当中来，还是B方法在运行的时候新建一个事务？这个就涉及到了事务的传播行为。
+另一种情况：两个事务方法，一个 A 方法，一个 B 方法。在这两个方法上都添加了@Transactional 注解，就代表这两个方法都具有事务，而在 A 方法当中又去调用了 B 方法。A 方法运行的时候，首先会开启一个事务，在 A 方法当中又调用了 B 方法， B 方法自身也具有事务，那么 B 方法在运行的时候，到底是加入到 A 方法的事务当中来，还是 B 方法在运行的时候新建一个事务？这个就涉及到了事务的传播行为。
 
-`@Transactional`注解当中的第二个属性`propagation`，这个属性是用来配置事务的传播行为的。`propagation`两个常用值为：
+`@Transactional` 注解当中的第二个属性 `propagation`，这个属性是用来配置事务的传播行为的。`propagation` 两个常用值为：
 
-- **REQUIRED：**共用同一个事务。
-- **REQUIRES_NEW：**创建新事物。
+- **REQUIRED：** 共用同一个事务。
+- **REQUIRES_NEW：** 创建新事物。
 
 ## 登录
 
@@ -2921,7 +2953,7 @@ public class LoginInfo {
 }
 ```
 
-**2).  定义**`LoginController`
+**2).  定义** `LoginController`
 
 ```Java
 @Slf4j
@@ -2944,7 +2976,7 @@ public class LoginController {
 }
 ```
 
-**3).** `EmpService`接口中增加 login 登录方法 
+**3).** `EmpService` 接口中增加 login 登录方法 
 
 ```Java
 /**
@@ -2953,7 +2985,7 @@ public class LoginController {
 LoginInfo login(Emp emp);
 ```
 
-**4).**  `EmpServiceImpl` 实现login方法
+**4).**  `EmpServiceImpl` 实现 login 方法
 
 ```Java
 @Override
@@ -2967,7 +2999,7 @@ public LoginInfo login(Emp emp) {
 }
 ```
 
-**5).** **`EmpMapper`**增加接口方法
+**5).** **`EmpMapper`** 增加接口方法
 
 ```Java
 /**
@@ -2978,7 +3010,7 @@ Emp getUsernameAndPassword(Emp emp);
 ```
 
 1. 会话技术：用户登录成功之后，在后续的每一次请求中，都可以获取到该标记。
-2. 统一拦截技术：过滤器Filter、拦截器Interceptor
+2. 统一拦截技术：过滤器 Filter、拦截器 Interceptor
 
 ### 会话技术
 
@@ -2989,24 +3021,24 @@ Emp getUsernameAndPassword(Emp emp);
 3. 令牌技术
 4. **JWT**
 
-JWT的组成： 
+JWT 的组成： 
 
-- 第一部分：Header(头）， 记录令牌类型、签名算法等。 例如：{"alg":"HS256","type":"JWT"}
-- 第二部分：Payload(有效载荷），携带一些自定义信息、默认信息等。 例如：{"id":"1","username":"Tom"}
-- 第三部分：Signature(签名），防止Token被篡改、确保安全性。将header、payload，并加入指定秘钥，通过指定签名算法计算而来。
+- 第一部分：Header(头）， 记录令牌类型、签名算法等。 例如：{"alg": "HS256", "type": "JWT"}
+- 第二部分：Payload(有效载荷），携带一些自定义信息、默认信息等。 例如：{"id": "1", "username": "Tom"}
+- 第三部分：Signature(签名），防止 Token 被篡改、确保安全性。将 header、payload，并加入指定秘钥，通过指定签名算法计算而来。
 
-在案例当中通过JWT令牌技术来跟踪会话，主要就是两步操作：
+在案例当中通过 JWT 令牌技术来跟踪会话，主要就是两步操作：
 
 1. 生成令牌
-   1. 在**登录成功之后来生成一个JWT令牌**，并且把这个**令牌直接返回给前端**
+   1. 在 **登录成功之后来生成一个 JWT 令牌**，并且把这个 **令牌直接返回给前端**
 2. 校验令牌
-   1. **拦截前端请求**，从请求中获取到令牌，对令牌进行**解析校验**
+   1. **拦截前端请求**，从请求中获取到令牌，对令牌进行 **解析校验**
 
-那我们首先来完成：登录成功之后生成JWT令牌，并且把令牌返回给前端。
+那我们首先来完成：登录成功之后生成 JWT 令牌，并且把令牌返回给前端。
 
 **实现步骤：**
 
-1. 引入JWT工具类：在项目工程下创建 `com.itheima.util` 包，并把提供JWT工具类复制到该包下
+1. 引入 JWT 工具类：在项目工程下创建 `com.itheima.util` 包，并把提供 JWT 工具类复制到该包下
 
 ```Java
 package com.itheima.util;
@@ -3051,7 +3083,7 @@ public class JwtUtils {
 }
 ```
 
-1. 完善 `EmpServiceImpl`中的 `login` 方法逻辑， 登录成功，生成JWT令牌并返回
+1. 完善 `EmpServiceImpl` 中的 `login` 方法逻辑， 登录成功，生成 JWT 令牌并返回
 
 ```Java
 @Override
@@ -3073,17 +3105,17 @@ public LoginInfo login(Emp emp) {
 
 ### 拦截技术
 
-**Filter过滤器**:过滤器可以把对资源的请求拦截下来。
+**Filter 过滤器**: 过滤器可以把对资源的请求拦截下来。
 
 **1). 定义过滤器**
 
-- init方法：过滤器的初始化方法。在web服务器启动的时候会自动的创建Filter过滤器对象，在创建过滤器对象的时候会自动调用init初始化方法，这个方法只会被调用一次。
-- doFilter方法：这个方法是在每一次拦截到请求之后都会被调用，所以这个方法是会被调用多次的，每拦截到一次请求就会调用一次doFilter()方法。
-- destroy方法： 是销毁的方法。当我们关闭服务器的时候，它会自动的调用销毁方法destroy，而这个销毁方法也只会被调用一次。
+- init 方法：过滤器的初始化方法。在 web 服务器启动的时候会自动的创建 Filter 过滤器对象，在创建过滤器对象的时候会自动调用 init 初始化方法，这个方法只会被调用一次。
+- doFilter 方法：这个方法是在每一次拦截到请求之后都会被调用，所以这个方法是会被调用多次的，每拦截到一次请求就会调用一次 doFilter()方法。
+- destroy 方法： 是销毁的方法。当我们关闭服务器的时候，它会自动的调用销毁方法 destroy，而这个销毁方法也只会被调用一次。
 
 **2). 配置过滤器**
 
-在定义完Filter之后，Filter其实并不会生效，还需要完成Filter的配置，Filter的配置非常简单，只需要在Filter类上添加一个注解：`@WebFilter`，并指定属性`urlPatterns`，通过这个属性指定过滤器要拦截哪些请求
+在定义完 Filter 之后，Filter 其实并不会生效，还需要完成 Filter 的配置，Filter 的配置非常简单，只需要在 Filter 类上添加一个注解：`@WebFilter`，并指定属性 `urlPatterns`，通过这个属性指定过滤器要拦截哪些请求
 
 ```Java
 @WebFilter(urlPatterns = "/*") //配置过滤器要拦截的请求路径（ /* 表示拦截浏览器的所有请求 ）
@@ -3105,7 +3137,7 @@ public class DemoFilter implements Filter {
 }
 ```
 
-当我们在Filter类上面加了@WebFilter注解之后，接下来我们还需要在启动类上面加上一个注解`@ServletComponentScan`，通过这个`@ServletComponentScan`注解来开启SpringBoot项目对于Servlet组件的支持。
+当我们在 Filter 类上面加了@WebFilter 注解之后，接下来我们还需要在启动类上面加上一个注解 `@ServletComponentScan`，通过这个 `@ServletComponentScan` 注解来开启 SpringBoot 项目对于 Servlet 组件的支持。
 
 ```Java
 @ServletComponentScan //开启对Servlet组件的支持
@@ -3119,11 +3151,11 @@ public class TliasManagementApplication {
 
 实际案例中拦截的基本流程：
 
-1. 获取请求url
-2. 判断请求url中是否包含login，如果包含，说明是登录操作，放行
+1. 获取请求 url
+2. 判断请求 url 中是否包含 login，如果包含，说明是登录操作，放行
 3. 获取请求头中的令牌（token）
 4. 判断令牌是否存在，如果不存在，响应 401
-5. 解析token，如果解析失败，响应 401
+5. 解析 token，如果解析失败，响应 401
 6. 放行
 
 ```Java
@@ -3176,11 +3208,11 @@ public class TokenFilter implements Filter {
 }
 ```
 
-**Interceptor拦截器**:Spring框架中提供的，用来动态拦截控制器方法的执行。
+**Interceptor 拦截器**: Spring 框架中提供的，用来动态拦截控制器方法的执行。
 
 **1). 自定义拦截器**
 
-实现HandlerInterceptor接口，并重写其所有方法
+实现 HandlerInterceptor 接口，并重写其所有方法
 
 ```Java
 //自定义拦截器
@@ -3210,13 +3242,13 @@ public class DemoInterceptor implements HandlerInterceptor {
 
 注意：
 
-- preHandle方法：目标资源方法执行前执行。 返回true：放行    返回false：不放行
-- postHandle方法：目标资源方法执行后执行
-- afterCompletion方法：视图渲染完毕后执行，最后执行
+- preHandle 方法：目标资源方法执行前执行。 返回 true：放行    返回 false：不放行
+- postHandle 方法：目标资源方法执行后执行
+- afterCompletion 方法：视图渲染完毕后执行，最后执行
 
 **2). 注册配置拦截器**
 
-在 `com.itheima`下创建一个包，然后创建一个配置类 `WebConfig`， 实现 `WebMvcConfigurer` 接口，并重写 `addInterceptors` 方法
+在 `com.itheima` 下创建一个包，然后创建一个配置类 `WebConfig`， 实现 `WebMvcConfigurer` 接口，并重写 `addInterceptors` 方法
 
 ```Java
 @Configuration  
@@ -3303,33 +3335,33 @@ public class WebConfig implements WebMvcConfigurer {
 
 AOP：面向切片编程。这里的切片是指某个特定的方法。
 
-应用场景：在实际开发中，有可能许多方法都会调用一个或几个其他接口，如果每个方法都写一次是高度冗余的。因此AOP就是管理这些重复的方法，进行动态代理。
+应用场景：在实际开发中，有可能许多方法都会调用一个或几个其他接口，如果每个方法都写一次是高度冗余的。因此 AOP 就是管理这些重复的方法，进行动态代理。
 
-- 减少重复代码：不需要在业务方法中定义大量的重复性的代码，只需要将重复性的代码抽取到AOP程序中即可。
-- 代码无侵入：在基于AOP实现这些业务功能时，对原有的业务代码是没有任何侵入的，不需要修改任何的业务代码。
+- 减少重复代码：不需要在业务方法中定义大量的重复性的代码，只需要将重复性的代码抽取到 AOP 程序中即可。
+- 代码无侵入：在基于 AOP 实现这些业务功能时，对原有的业务代码是没有任何侵入的，不需要修改任何的业务代码。
 - 提高开发效率
 - 维护方便
 
 ### 基本概念
 
-- **连接点：JoinPoint**，可以被AOP控制的方法（暗含方法执行时的相关信息）
-  - 连接点指的是可以被aop控制的方法。例如：入门程序当中所有的业务方法都是可以被aop控制的方法。
-  - 在SpringAOP提供的JoinPoint当中，封装了连接点方法在执行时的相关信息。（后面会有具体的讲解）
+- **连接点：JoinPoint**，可以被 AOP 控制的方法（暗含方法执行时的相关信息）
+  - 连接点指的是可以被 aop 控制的方法。例如：入门程序当中所有的业务方法都是可以被 aop 控制的方法。
+  - 在 SpringAOP 提供的 JoinPoint 当中，封装了连接点方法在执行时的相关信息。（后面会有具体的讲解）
 
-- **通知：Advice**，指哪些**重复的逻辑**，也就是共性功能（最终体现为一个方法）
-  - 在AOP面向切面编程当中，我们只需要将这部分重复的代码逻辑抽取出来单独定义。抽取出来的这一部分重复的逻辑，也就是共性的功能。
+- **通知：Advice**，指哪些 **重复的逻辑**，也就是共性功能（最终体现为一个方法）
+  - 在 AOP 面向切面编程当中，我们只需要将这部分重复的代码逻辑抽取出来单独定义。抽取出来的这一部分重复的逻辑，也就是共性的功能。
 
 - **切入点：PointCut**，匹配连接点的条件，通知仅会在切入点方法执行时被应用。
-  - 在通知当中，我们所定义的共性功能到底要应用在哪些方法上？此时就涉及到了切入点pointcut概念。切入点指的是匹配连接点的条件。通知仅会在切入点方法运行时才会被应用。
-  - 在aop的开发当中，我们通常会通过一个切入点表达式来描述切入点
+  - 在通知当中，我们所定义的共性功能到底要应用在哪些方法上？此时就涉及到了切入点 pointcut 概念。切入点指的是匹配连接点的条件。通知仅会在切入点方法运行时才会被应用。
+  - 在 aop 的开发当中，我们通常会通过一个切入点表达式来描述切入点
 
 - **切面：Aspect**，描述通知与切入点的对应关系（通知+切入点）
-  - 当通知和切入点结合在一起，就形成了一个切面。通过切面就能够描述当前aop程序需要针对于哪个原始方法，在什么时候执行什么样的操作。而切面所在的类，称之为切面类（被`@Aspect`注解标识的类）。
+  - 当通知和切入点结合在一起，就形成了一个切面。通过切面就能够描述当前 aop 程序需要针对于哪个原始方法，在什么时候执行什么样的操作。而切面所在的类，称之为切面类（被 `@Aspect` 注解标识的类）。
 
 - **目标对象：Target**，通知所应用的对象。
   - 目标对象指的就是通知所应用的对象，我们就称之为目标对象。
 
-例如，我们现在要**统计部门管理各个业务层方法执行耗时。**统计时间就是一个重复的逻辑，需要提取出来。
+例如，我们现在要 **统计部门管理各个业务层方法执行耗时。** 统计时间就是一个重复的逻辑，需要提取出来。
 
 ```java
 //这些业务方法就是连接点，可以被AOP控制
@@ -3367,13 +3399,13 @@ public class RecordTimeAspect {
 }
 ```
 
-### AOP实现流程
+### AOP 实现流程
 
 本质：动态代理。
 
-在切面类中，需要执行aop被控制的类，但本质是在bean中创建一个与之前冗余代码相同的类，在控制层中调用服务层的接口时。本质是调用bean中的类。
+在切面类中，需要执行 aop 被控制的类，但本质是在 bean 中创建一个与之前冗余代码相同的类，在控制层中调用服务层的接口时。本质是调用 bean 中的类。
 
-### AOP通知
+### AOP 通知
 
 | **Spring AOP 通知类型** |                                                              |
 | ----------------------- | ------------------------------------------------------------ |
@@ -3451,18 +3483,18 @@ public class MyAspect1 {
 - **不同的切面类当中，默认情况下通知的执行顺序是与切面类的类名字母排序是有关系的**（
   - 目标方法前的通知方法：字母排名靠前的先执行
   - 目标方法后的通知方法：字母排名靠前的后执行
-- **可以在切面类上面加上@Order注解，来控制不同的切面类通知的执行顺序**
+- **可以在切面类上面加上@Order 注解，来控制不同的切面类通知的执行顺序**
 
 ### 切入点
 
-execution主要根据方法的返回值、包名、类名、方法名、方法参数等信息来匹配，语法为：
+execution 主要根据方法的返回值、包名、类名、方法名、方法参数等信息来匹配，语法为：
 
 ```Java
 // execution(访问修饰符?  返回值  包名.类名.?方法名(方法参数) throws 异常?)
 @Before("execution(void com.itheima.service.impl.DeptServiceImpl.delete(java.lang.Integer))")
 ```
 
-其中带`?`的表示可以省略的部分
+其中带 `?` 的表示可以省略的部分
 
 - 访问修饰符：可省略（比如: public、protected）
 - 包名.类名： 可省略 一般不要省
@@ -3473,7 +3505,7 @@ execution主要根据方法的返回值、包名、类名、方法名、方法�
 
 annotation 切入点表达式
 
-- 基于注解的方式来匹配切入点方法。这种方式虽然多一步操作，我们**需要自定义一个注解**，但是相对来比较灵活。我们需要匹配哪个方法，就在方法上加上对应的注解就可以了
+- 基于注解的方式来匹配切入点方法。这种方式虽然多一步操作，我们 **需要自定义一个注解**，但是相对来比较灵活。我们需要匹配哪个方法，就在方法上加上对应的注解就可以了
 
 #### pointcut
 
@@ -3506,6 +3538,107 @@ public class MyAspect1 {
     }
 }
 ```
+
+## 全局异常
+
+```java
+@RestControllerAdvice
+@Slf4j
+public class GlobalExceptionHandler {
+
+    /**
+     * 捕获业务异常
+     * @param ex
+     * @return
+     */
+    @ExceptionHandler
+    public Result exceptionHandler(BaseException ex){//这里捕获的一个父类的异常，当它的子类被捕获时也会用这个
+        log.error("异常信息：{}", ex.getMessage());
+        return Result.error(ex.getMessage());//捕获返回错误结果
+        //   例如throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
+        // 上面抛出异常时，被RestControllerAdvice注释的全局异常处理器类就是接收这个异常并返回给前端
+ 
+    }
+    // @RestControllerAdvice 表示当前类为全局异常处理器
+    // @ExceptionHandler 指定可以捕获哪种类型的异常进行处理
+}
+```
+
+```java
+class BaseException extends RuntimeException {
+
+    public BaseException() {
+    }
+
+    public BaseException(String msg) {
+        super(msg);
+    }
+
+}
+class AccountNotFoundException extends BaseException {
+
+    public AccountNotFoundException() {
+    }
+
+    public AccountNotFoundException(String msg) {
+        super(msg);
+    }
+
+}
+```
+
+## Swagger
+
+用于后端开发进行接口测试，简单。
+
+**使用方式**：
+
+导入 maven，`knife4j` 是 Java MVC 框架继承 Swagger 生成 API 的解决方法
+
+设置 Swagger 配置类（直接粘贴复制即可）
+
+```java
+/**
+     * 通过knife4j生成接口文档
+     * @return
+     */
+@Bean
+public Docket docket() {
+    ApiInfo apiInfo = new ApiInfoBuilder()
+        .title("苍穹外卖项目接口文档") // 调试页面题目
+        .version("2.0")
+        .description("苍穹外卖项目接口文档") // 描述
+        .build();
+    Docket docket = new Docket(DocumentationType.SWAGGER_2)
+        .apiInfo(apiInfo)
+        .select()
+        .apis(RequestHandlerSelectors.basePackage("com.sky.controller"))//要扫描的包
+        .paths(PathSelectors.any())
+        .build();
+    return docket;
+}
+
+/**
+     * 设置静态资源映射
+     * @param registry
+     */
+protected void addResourceHandlers(ResourceHandlerRegistry registry) {//直接复制即可，一定要配置
+    // 之后接口调试进入localhost:8080/doc.html进入即可
+    registry.addResourceHandler("/doc.html").addResourceLocations("classpath:/META-INF/resources/");
+    registry.addResourceHandler("/webjars/**").addResourceLocations("classpath:/META-INF/resources/webjars/");
+}
+```
+
+**常见注释**：就是配置一些描述信息，之后在 doc 页面中会显示出来。注释中的值就是 **描述信息**。
+
+```java
+@Api(tags = "员工相关接口") //配置在接口所在的类上
+@ApiOperation(value = "员工登录") //配置具体接口的方法上
+@ApiModel(description = "员工登录时传递的数据模型") // 配置在pojo，dto，vo这些实体类上
+@ApiModelProperty("密码") //配置在实体类的属性上
+```
+
+
 
 # 数据库
 
@@ -3708,15 +3841,15 @@ public interface UserMapper {
   public List<Dept> findAll();
   ```
 
-### 动态SQL
+### 动态 SQL
 
-MyBatis的动态 SQL 允许在映射文件中根据不同条件动态生成 SQL 语句，避免了手动拼接 SQL 字符串的繁琐与易错性。它基于特定的标签语法，依据传入参数或配置信息灵活构建查询逻辑，极大地提升了代码的可维护性和复用性。
+MyBatis 的动态 SQL 允许在映射文件中根据不同条件动态生成 SQL 语句，避免了手动拼接 SQL 字符串的繁琐与易错性。它基于特定的标签语法，依据传入参数或配置信息灵活构建查询逻辑，极大地提升了代码的可维护性和复用性。
 
 #### if
 
-使用场景为，有时候传的参数不一定全，如果为空，可能会报错，这个时候可以用if进行判断。
+使用场景为，有时候传的参数不一定全，如果为空，可能会报错，这个时候可以用 if 进行判断。
 
-如果希望通过 title和 author”两个参数进行可选搜索该怎么办呢？首先，我想先将语句名称修改成更名副其实的名称；接下来，只需要加入另一个条件即可。
+如果希望通过 title 和 author”两个参数进行可选搜索该怎么办呢？首先，我想先将语句名称修改成更名副其实的名称；接下来，只需要加入另一个条件即可。
 
 ```
 <select id="findActiveBlogLike" resultType="Blog">
@@ -3732,7 +3865,7 @@ MyBatis的动态 SQL 允许在映射文件中根据不同条件动态生成 SQL 
 
 #### when
 
-MyBatis首先检查第一个`when`标签，如果条件满足，则执行该标签内的SQL语句。如果条件不满足，则继续检查下一个`when`标签，依此类推。如果所有`when`标签的条件都不满足，则执行`otherwise`标签内的SQL语句。
+MyBatis 首先检查第一个 `when` 标签，如果条件满足，则执行该标签内的 SQL 语句。如果条件不满足，则继续检查下一个 `when` 标签，依此类推。如果所有 `when` 标签的条件都不满足，则执行 `otherwise` 标签内的 SQL 语句。
 
 ```xml
 <select id="findActiveBlogLike"
@@ -3754,7 +3887,7 @@ MyBatis首先检查第一个`when`标签，如果条件满足，则执行该标�
 
 #### set
 
-常用于**动态更新**数据，如果`set`标签内的`if`为真，则加入，否则不加入。
+常用于 **动态更新** 数据，如果 `set` 标签内的 `if` 为真，则加入，否则不加入。
 
 ```xml
 <!--根据ID更新员工信息-->
@@ -3781,14 +3914,14 @@ MyBatis首先检查第一个`when`标签，如果条件满足，则执行该标�
 
 #### foreach
 
-在MyBatis中，`foreach`标签用于在SQL语句中迭代一个集合，常用于构建*IN*条件、批量插入、批量更新等操作。`foreach`标签的主要属性包括
+在 MyBatis 中，`foreach` 标签用于在 SQL 语句中迭代一个集合，常用于构建 *IN* 条件、批量插入、批量更新等操作。`foreach` 标签的主要属性包括
 
 - **collection**: 指定要遍历的集合，表示传入的参数的数据类型。该属性是必须指定的。
-- **item**: 表示本次迭代获取的元素。若*collection*为*List*、*Set*或者数组，则表示其中的元素；若*collection*为*Map*，则代表*key-value*的*value*。
-- **index**: 索引，用于表示在迭代过程中，每次迭代到的位置。遍历*List*时，*index*是索引；遍历*Map*时，*index*表示*Map*的*key*。
+- **item**: 表示本次迭代获取的元素。若 *collection* 为 *List*、*Set* 或者数组，则表示其中的元素；若 *collection* 为 *Map*，则代表 *key-value* 的 *value*。
+- **index**: 索引，用于表示在迭代过程中，每次迭代到的位置。遍历 *List* 时，*index* 是索引；遍历 *Map* 时，*index* 表示 *Map* 的 *key*。
 - **separator**: 表示在每次迭代之间以什么符号作为分隔符。
-- **open**: 表示该语句以什么开始，常用的是左括号*(*。
-- **close**: 表示该语句以什么结束，常用的是右括号*)*。
+- **open**: 表示该语句以什么开始，常用的是左括号 *(*。
+- **close**: 表示该语句以什么结束，常用的是右括号 *)*。
 
 示例代码
 
@@ -3825,15 +3958,15 @@ MyBatis首先检查第一个`when`标签，如果条件满足，则执行该标�
 
 重要注意事项
 
-- **性能**: 使用*<foreach>*标签进行批量操作时，注意SQL语句的长度和复杂度，避免性能问题。
+- **性能**: 使用 *<foreach>* 标签进行批量操作时，注意 SQL 语句的长度和复杂度，避免性能问题。
 - **事务**: 批量插入、更新和删除操作需要在事务中执行，以确保数据的一致性和完整性。
-- **参数类型**: 确保传入的参数类型与*<foreach>*标签中的*collection*属性匹配，否则会导致运行时错误。
+- **参数类型**: 确保传入的参数类型与 *<foreach>* 标签中的 *collection* 属性匹配，否则会导致运行时错误。
 
-通过合理使用MyBatis中的*<foreach>*标签，可以简化批量操作的SQL语句，提高代码的可读性和维护性。
+通过合理使用 MyBatis 中的 *<foreach>* 标签，可以简化批量操作的 SQL 语句，提高代码的可读性和维护性。
 
 ### 增
 
-**批量增加**：如果想要批量增加，一般传过来的时一个`list`，因此使用动态的SQL语句进行`foreach`，进行遍历list插入信息。
+**批量增加**：如果想要批量增加，一般传过来的时一个 `list`，因此使用动态的 SQL 语句进行 `foreach`，进行遍历 list 插入信息。
 
 ```xml
     <!--批量插入员工工作经历信息-->
@@ -3845,7 +3978,7 @@ MyBatis首先检查第一个`when`标签，如果条件满足，则执行该标�
     </insert>
 ```
 
-**增加返回主键值**：在增加信息时，可以也需要添加其他表的信息，而其他表由于这个表的主键相关联。比如，我新增一个员工，还添加了他的工作经历，增加他的工作经历还需要这员工的主键id。
+**增加返回主键值**：在增加信息时，可以也需要添加其他表的信息，而其他表由于这个表的主键相关联。比如，我新增一个员工，还添加了他的工作经历，增加他的工作经历还需要这员工的主键 id。
 
 ```java
 /**
@@ -3868,9 +4001,9 @@ void insert(Emp emp);
 </insert>
 ```
 
-`useGeneratedKeys`：表示如果插入的表以自增列为主键，则允许JDBC支持自动生成主键，并将**自动生成的主键返回**。
+`useGeneratedKeys`：表示如果插入的表以自增列为主键，则允许 JDBC 支持自动生成主键，并将 **自动生成的主键返回**。
 
-`keyProperty`：表示将数据库的**自增主键与实体类的属性进行绑定**，这样就可以在插入操作后直接获取到自增的主键值。具体值为**主键对应的实体类的属性名**。
+`keyProperty`：表示将数据库的 **自增主键与实体类的属性进行绑定**，这样就可以在插入操作后直接获取到自增的主键值。具体值为 **主键对应的实体类的属性名**。
 
 ```java
 empMapper.insert(emp); // 自动绑定到实体中
@@ -3879,7 +4012,7 @@ Integer empId = emp.getId();//通过get对应的属性名来获取
 
 ### 删
 
-**批量删除**：批量删除需要前端传过来的许多`id`,将`id`封装为`List`。
+**批量删除**：批量删除需要前端传过来的许多 `id`, 将 `id` 封装为 `List`。
 
 ```java
 /**
@@ -3905,7 +4038,7 @@ public Result delete(@RequestParam List<Integer> ids){
 
 ### 查
 
-**一对一查询**：如果实体类属性名与表的字段名一致，则直接使用常规的注释或 xml 配置文件方式即可。但如果**不一致，则需要进行映射**。
+**一对一查询**：如果实体类属性名与表的字段名一致，则直接使用常规的注释或 xml 配置文件方式即可。但如果 **不一致，则需要进行映射**。
 
 ```java
 //方式一 通过注释 column字段名 property属性名
@@ -3939,7 +4072,7 @@ public List<Dept> findAll();
 </select>
 ```
 
-其中`resultMap`与`resultType`选择一个即可。如果一致的话使用`resultType`。不一致时使用`resultMap`。上述例子中，设计多表查询。目的时查询`emp`所有信息以及`emp`所属的`dept.name`。由于查询的实体类中为`deptName`，而想要查询的表中字段为`name`。因此映射`deptName`为`dept_name`，再把表中的`name`字段改名为`dept_name`。就对应上了。
+其中 `resultMap` 与 `resultType` 选择一个即可。如果一致的话使用 `resultType`。不一致时使用 `resultMap`。上述例子中，设计多表查询。目的时查询 `emp` 所有信息以及 `emp` 所属的 `dept.name`。由于查询的实体类中为 `deptName`，而想要查询的表中字段为 `name`。因此映射 `deptName` 为 `dept_name`，再把表中的 `name` 字段改名为 `dept_name`。就对应上了。
 
 ```
 public class Emp {
@@ -3963,7 +4096,7 @@ public class Emp {
 }
 ```
 
-**一对多查询**：还是上述实体类的例子，一个员工对应许多工作经历，因此需要使用`List`进行封装。再进行一对多查询时，可以使用`collection`进行封装**多的类型**。
+**一对多查询**：还是上述实体类的例子，一个员工对应许多工作经历，因此需要使用 `List` 进行封装。再进行一对多查询时，可以使用 `collection` 进行封装 **多的类型**。
 
 ```xml
 <!--自定义结果集ResultMap-->
@@ -4007,7 +4140,7 @@ public class Emp {
 
 ### 改
 
-修改一般时两步操作，查询回显再修改内容。其中查询回显为查的内容，基本就是一对一，一对多的问题。改就是接收前端传回来的json，再传给对象进行修改。跟增加很类似。
+修改一般时两步操作，查询回显再修改内容。其中查询回显为查的内容，基本就是一对一，一对多的问题。改就是接收前端传回来的 json，再传给对象进行修改。跟增加很类似。
 
 ```xml
 <update id="update">
